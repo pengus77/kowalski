@@ -1351,7 +1351,7 @@ static s32 wl_do_iscan(struct wl_priv *wl, struct cfg80211_scan_request *request
 
 	passive_scan = wl->active_scan ? 0 : 1;
 	err = wldev_ioctl(ndev, WLC_SET_PASSIVE_SCAN,
-		&passive_scan, sizeof(passive_scan), false);
+		&passive_scan, sizeof(passive_scan), true);
 	if (unlikely(err)) {
 		WL_DBG(("error (%d)\n", err));
 		return err;
@@ -1528,7 +1528,7 @@ wl_do_escan(struct wl_priv *wl, struct wiphy *wiphy, struct net_device *ndev,
 	wl->escan_info.escan_state = WL_ESCAN_STATE_SCANING;
 	passive_scan = wl->active_scan ? 0 : 1;
 	err = wldev_ioctl(ndev, WLC_SET_PASSIVE_SCAN,
-		&passive_scan, sizeof(passive_scan), false);
+		&passive_scan, sizeof(passive_scan), true);
 	if (unlikely(err)) {
 		WL_ERR(("error (%d)\n", err));
 		goto exit;
@@ -1714,7 +1714,7 @@ __wl_cfg80211_scan(struct wiphy *wiphy, struct net_device *ndev,
 		WL_SCAN(("sr->ssid.SSID_len (%d)\n", sr->ssid.SSID_len));
 		passive_scan = wl->active_scan ? 0 : 1;
 		err = wldev_ioctl(ndev, WLC_SET_PASSIVE_SCAN,
-			&passive_scan, sizeof(passive_scan), false);
+			&passive_scan, sizeof(passive_scan), true);
 		if (unlikely(err)) {
 			WL_SCAN(("WLC_SET_PASSIVE_SCAN error (%d)\n", err));
 			goto scan_out;
@@ -1799,7 +1799,7 @@ static s32 wl_set_retry(struct net_device *dev, u32 retry, bool l)
 	u32 cmd = (l ? WLC_SET_LRL : WLC_SET_SRL);
 
 	retry = htod32(retry);
-	err = wldev_ioctl(dev, cmd, &retry, sizeof(retry), false);
+	err = wldev_ioctl(dev, cmd, &retry, sizeof(retry), true);
 	if (unlikely(err)) {
 		WL_ERR(("cmd (%d) , error (%d)\n", cmd, err));
 		return err;
