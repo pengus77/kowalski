@@ -36,11 +36,21 @@
 #define MAX8907C_LDO18  20
 #define MAX8907C_LDO19  21
 #define MAX8907C_LDO20  22
+#if defined (CONFIG_MACH_STAR)
+#define MAX8907C_TOUCHLED  23
+#define MAX8907C_WLED   24
+#define MAX8907C_VRTC   24
+#define MAX8907C_OUT5V  25
+#define MAX8907C_OUT33V 26
+#define MAX8907C_BBAT   27
+#define MAX8907C_SDBY   28
+#else
 #define MAX8907C_OUT5V  23
 #define MAX8907C_OUT33V 24
 #define MAX8907C_BBAT   25
 #define MAX8907C_SDBY   26
 #define MAX8907C_VRTC   27
 #define MAX8907C_WLED   27
+#endif
 
 #endif

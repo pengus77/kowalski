@@ -129,6 +129,10 @@ struct wm8994_priv {
 	void *jack_cb_data;
 	int micdet_irq;
 
+#if defined (CONFIG_MACH_STAR)
+	struct snd_soc_jack *headset_jack;
+#endif
+
 	int revision;
 	struct wm8994_pdata *pdata;
 

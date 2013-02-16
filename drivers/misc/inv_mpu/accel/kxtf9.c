@@ -712,7 +712,9 @@ static struct ext_slave_descr kxtf9_descr = {
 	.read_len         = 6,
 	.endian           = EXT_SLAVE_LITTLE_ENDIAN,
 	.range            = {2, 0},
+#ifndef CONFIG_MACH_STAR
 	.trigger          = NULL,
+#endif
 };
 
 static

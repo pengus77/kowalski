@@ -1280,8 +1280,10 @@ static struct i2c_driver mpu_driver = {
 		   },
 	.address_list = normal_i2c,
 	.shutdown = mpu_shutdown,	/* optional */
+#ifndef CONFIG_MACH_STAR
 	.suspend = mpu_dev_suspend,	/* optional */
 	.resume = mpu_dev_resume,	/* optional */
+#endif
 
 };
 

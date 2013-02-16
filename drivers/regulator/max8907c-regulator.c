@@ -16,6 +16,9 @@
 #include <linux/regulator/driver.h>
 #include <linux/mfd/max8907c.h>
 #include <linux/regulator/max8907c-regulator.h>
+#if defined (CONFIG_MACH_STAR)
+#include <linux/regulator/machine.h>
+#endif
 
 #define MAX8907C_II2RR_VERSION_MASK	0xF0
 #define MAX8907C_II2RR_VERSION_REV_A	0x00
@@ -109,13 +112,42 @@ struct max8907c_regulator_info {
 		}, \
 	}
 
+#if defined (CONFIG_MACH_STAR)
+#define REG_LDO_TOUCHLED(ids, base, min, max, step) \
+        { \
+                .min_uV = (min), \
+                .max_uV = (max), \
+                .step_uV = (step), \
+                .reg_base = (base), \
+                .desc = { \
+                        .name = #ids, \
+                        .id = MAX8907C_##ids, \
+                        .n_voltages = ((max) - (min)) / (step) + 1, \
+                        .ops = &max8907c_ldo_touchled_ops, \
+                        .type = REGULATOR_VOLTAGE, \
+                        .owner = THIS_MODULE, \
+                }, \
+        }
+#endif
+
+
 #define LDO_750_50(id, base) REG_LDO(id, (base), 750000, 3900000, 50000)
 #define LDO_650_25(id, base) REG_LDO(id, (base), 650000, 2225000, 25000)
+#if defined (CONFIG_MACH_STAR)
+#define LDO_TOUCHLED(id, base) REG_LDO_TOUCHLED(id, (base), 650000, 2225000, 25000)
+#endif
+
 
 static int max8907c_regulator_list_voltage(struct regulator_dev *dev,
 					   unsigned index);
+#if defined (CONFIG_MACH_STAR)
+static int max8907c_regulator_ldo_set_voltage(struct regulator_dev *dev,
+					      int min_uV, int max_uV,
+					      unsigned *selector);
+#else
 static int max8907c_regulator_ldo_set_voltage(struct regulator_dev *dev,
 					      int min_uV, int max_uV);
+#endif
 static int max8907c_regulator_bbat_set_voltage(struct regulator_dev *dev,
 					       int min_uV, int max_uV);
 static int max8907c_regulator_ldo_get_voltage(struct regulator_dev *dev);
@@ -130,6 +162,14 @@ static int max8907c_regulator_ldo_disable(struct regulator_dev *dev);
 static int max8907c_regulator_out5v_disable(struct regulator_dev *dev);
 static int max8907c_regulator_ldo_is_enabled(struct regulator_dev *dev);
 static int max8907c_regulator_out5v_is_enabled(struct regulator_dev *dev);
+#if defined (CONFIG_MACH_STAR)
+static int max8907c_regulator_ldo_touchled_set_voltage(struct regulator_dev *dev,int min_uV, int max_uV);
+static int max8907c_regulator_ldo_touchled_get_voltage(struct regulator_dev *dev);
+static int max8907c_regulator_ldo_touchled_enable(struct regulator_dev *dev);
+static int max8907c_regulator_ldo_touchled_disable(struct regulator_dev *dev);
+static int max8907c_regulator_ldo_touchled_is_enabled(struct regulator_dev *dev);
+#endif
+
 
 static struct regulator_ops max8907c_ldo_ops = {
 	.list_voltage = max8907c_regulator_list_voltage,
@@ -166,6 +206,17 @@ static struct regulator_ops max8907c_wled_ops = {
 	.get_voltage = max8907c_regulator_fixed_get_voltage,
 };
 
+#if defined (CONFIG_MACH_STAR)
+static struct regulator_ops max8907c_ldo_touchled_ops = {
+	.list_voltage = max8907c_regulator_list_voltage,
+	.set_voltage = max8907c_regulator_ldo_touchled_set_voltage,
+	.get_voltage = max8907c_regulator_ldo_touchled_get_voltage,
+	.enable = max8907c_regulator_ldo_touchled_enable,
+	.disable = max8907c_regulator_ldo_touchled_disable,
+	.is_enabled = max8907c_regulator_ldo_touchled_is_enabled,
+};
+#endif
+
 static struct max8907c_regulator_info max8907c_regulators[] = {
 	REG_LDO(SD1, MAX8907C_REG_SDCTL1, 650000, 2225000, 25000),
 	REG_LDO(SD2, MAX8907C_REG_SDCTL2, 637500, 1425000, 12500),
@@ -190,12 +241,20 @@ static struct max8907c_regulator_info max8907c_regulators[] = {
 	LDO_650_25(LDO18, MAX8907C_REG_LDOCTL18),
 	LDO_750_50(LDO19, MAX8907C_REG_LDOCTL19),
 	LDO_750_50(LDO20, MAX8907C_REG_LDOCTL20),
+#if defined (CONFIG_MACH_STAR)
+	LDO_TOUCHLED(TOUCHLED, 0),
+#if defined(CONFIG_STAR_TOUCH_LED)
+	REG_WLED(WLED, MAX8907C_REG_ILED_CNTL, 3000000),
+#endif
+#endif
 	REG_OUT5V(OUT5V, MAX8907C_REG_OUT5VEN, 5000000),
 	REG_OUT5V(OUT33V, MAX8907C_REG_OUT33VEN, 3300000),
 	REG_BBAT(BBAT, MAX8907C_REG_BBAT_CNFG, 2400000, 3000000, 200000),
 	REG_FIXED(SDBY, 1200000),
 	REG_FIXED(VRTC, 3300000),
+#if !defined(CONFIG_STAR_TOUCH_LED)
 	REG_WLED(WLED, MAX8907C_REG_ILED_CNTL, 0),
+#endif
 };
 
 static int max8907c_regulator_list_voltage(struct regulator_dev *rdev,
@@ -206,8 +265,14 @@ static int max8907c_regulator_list_voltage(struct regulator_dev *rdev,
 	return info->min_uV + info->step_uV * index;
 }
 
+#if defined (CONFIG_MACH_STAR)
+static int max8907c_regulator_ldo_set_voltage(struct regulator_dev *rdev,
+					      int min_uV, int max_uV,
+					      unsigned *selector)
+#else
 static int max8907c_regulator_ldo_set_voltage(struct regulator_dev *rdev,
 					      int min_uV, int max_uV)
+#endif
 {
 	const struct max8907c_regulator_info *info = rdev_get_drvdata(rdev);
 	int val;
@@ -215,6 +280,9 @@ static int max8907c_regulator_ldo_set_voltage(struct regulator_dev *rdev,
 	if (min_uV < info->min_uV || max_uV > info->max_uV)
 		return -EDOM;
 
+#if defined (CONFIG_MACH_STAR)	
+	*selector = -1;
+#endif
 	val = (min_uV - info->min_uV) / info->step_uV;
 
 	return max8907c_reg_write(info->i2c, info->reg_base + MAX8907C_VOUT, val);
@@ -269,7 +337,17 @@ static int max8907c_regulator_wled_set_current_limit(struct regulator_dev *rdev,
 	if (min_uA > 25500)
 		return -EDOM;
 
+#if defined(CONFIG_STAR_TOUCH_LED)
+	
+	if ( min_uA == 0)
+		max8907c_reg_write(info->i2c, info->reg_base, 0x00);	// disable wled 
+	else	
+		max8907c_reg_write(info->i2c, info->reg_base, 0x01);	// enable wled 
+
+	return max8907c_reg_write(info->i2c, info->reg_base+1, min_uA); // set current..
+#else
 	return max8907c_reg_write(info->i2c, info->reg_base, min_uA / 100);
+#endif
 }
 
 static int max8907c_regulator_wled_get_current_limit(struct regulator_dev *rdev)
@@ -352,12 +430,40 @@ static int max8907c_regulator_out5v_is_enabled(struct regulator_dev *rdev)
 	return 0;
 }
 
+
+#if defined (CONFIG_MACH_STAR)
+static int max8907c_regulator_ldo_touchled_set_voltage(struct regulator_dev *dev,int min_uV, int max_uV)
+{
+        return 0;
+}
+static int max8907c_regulator_ldo_touchled_get_voltage(struct regulator_dev *dev)
+{
+        return 1250;
+}
+static int max8907c_regulator_ldo_touchled_enable(struct regulator_dev *dev)
+{
+        return 0;
+}
+static int max8907c_regulator_ldo_touchled_disable(struct regulator_dev *dev)
+{
+        return 0;
+}
+static int max8907c_regulator_ldo_touchled_is_enabled(struct regulator_dev *dev)
+{
+        return 1;
+}
+#endif
+
 static int max8907c_regulator_probe(struct platform_device *pdev)
 {
 	struct max8907c *max8907c = dev_get_drvdata(pdev->dev.parent);
 	struct max8907c_regulator_info *info;
 	struct regulator_dev *rdev;
 	u8 version;
+#if defined(CONFIG_MACH_STAR)
+	struct regulator_init_data *initdata;
+	struct regulation_constraints *c;
+#endif
 
 	/* Backwards compatibility with max8907b, SD1 uses different voltages */
 	version = max8907c_reg_read(max8907c->i2c_power, MAX8907C_REG_II2RR);
@@ -369,6 +475,19 @@ static int max8907c_regulator_probe(struct platform_device *pdev)
 
 	info = &max8907c_regulators[pdev->id];
 	info->i2c = max8907c->i2c_power;
+
+#if defined(CONFIG_MACH_STAR)
+	initdata = (struct regulator_init_data *)pdev->dev.platform_data;
+	if (!initdata)
+		return -EINVAL;
+
+	c = &initdata->constraints;
+
+	if(pdev->id == MAX8907C_LDO5) 
+	{
+		c->always_on = true;
+	}
+#endif
 
 	rdev = regulator_register(&info->desc,
 				  &pdev->dev, pdev->dev.platform_data, info);

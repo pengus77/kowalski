@@ -179,7 +179,9 @@ static struct ext_slave_descr ami30x_descr = {
 	.read_len         = 6,
 	.endian           = EXT_SLAVE_LITTLE_ENDIAN,
 	.range            = {5461, 3333},
+#ifndef CONFIG_MACH_STAR	
 	.trigger          = NULL,
+#endif
 };
 
 static

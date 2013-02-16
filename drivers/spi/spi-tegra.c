@@ -147,6 +147,15 @@
 #define SPI_FIFO_DEPTH		32
 #define SLINK_DMA_TIMEOUT (msecs_to_jiffies(1000))
 
+#if defined (CONFIG_MACH_STAR)
+#include <mach/iomap.h>
+#define SPI_TEGRA_ERROR
+#ifdef SPI_TEGRA_ERROR
+#define TEGRA_ERR_LOG(format, args...) printk("[TEGRA SPI] : %s (%d line): " format "\n", __FUNCTION__, __LINE__, ## args)
+#else
+#define TEGRA_ERR_LOG(format, args...)
+#endif
+#endif
 
 static const unsigned long spi_tegra_req_sels[] = {
 	TEGRA_DMA_REQ_SEL_SL2B1,
@@ -237,6 +246,9 @@ struct spi_tegra_data {
 	u32			dma_control_reg;
 	u32			def_command_reg;
 	u32			def_command2_reg;
+#if defined (CONFIG_MACH_STAR)	
+	bool                    is_suspend_failed;
+#endif
 
 	struct spi_clk_parent	*parent_clk_list;
 	int			parent_clk_count;
@@ -619,6 +631,25 @@ static int spi_tegra_start_cpu_based_transfer(
 	spi_tegra_writel(tspi, val, SLINK_DMA_CTL);
 	return 0;
 }
+
+#if defined (CONFIG_MACH_STAR)
+bool spi_tegra_is_suspend(struct spi_device *spi)
+{
+	struct spi_tegra_data *tspi = spi_master_get_devdata(spi->master);
+
+	return tspi->is_suspended;
+}
+
+bool spi_tegra_suspend_failed(struct spi_device *spi)
+{
+	struct spi_tegra_data *tspi = spi_master_get_devdata(spi->master);
+
+	if (tspi->is_suspend_failed == true)
+		TEGRA_ERR_LOG("tspi->is_suspend_failed=%d", tspi->is_suspend_failed);
+
+	return tspi->is_suspend_failed;
+}
+#endif
 
 static void set_best_clk_source(struct spi_tegra_data *tspi,
 		unsigned long speed)

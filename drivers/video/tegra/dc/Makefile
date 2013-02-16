@@ -1,6 +1,9 @@
 GCOV_PROFILE := y
 obj-y += dc.o
 obj-y += rgb.o
+ifeq ($(CONFIG_MACH_STAR), y)
+obj-y += cpu.o
+endif
 obj-y += hdmi.o
 obj-$(CONFIG_TEGRA_NVHDCP) += nvhdcp.o
 obj-y += edid.o

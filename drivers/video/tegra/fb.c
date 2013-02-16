@@ -52,6 +52,9 @@ struct tegra_fb_info {
 	struct fb_info		*info;
 	bool			valid;
 
+#if defined (CONFIG_PANICRPT)   
+        atomic_t                in_use;
+#endif /* CONFIG_PANICRPT */
 	struct resource		*fb_mem;
 
 	int			xres;
@@ -60,6 +63,11 @@ struct tegra_fb_info {
 
 /* palette array used by the fbcon */
 static u32 pseudo_palette[16];
+#if defined (CONFIG_PANICRPT)    
+static int panicrpt_status = -4;
+extern int panicrpt_ispanic (void);
+extern void panicrpt_ready(bool flag);
+#endif /* CONFIG_PANICRPT */
 
 static int tegra_fb_check_var(struct fb_var_screeninfo *var,
 			      struct fb_info *info)
@@ -83,6 +91,9 @@ static int tegra_fb_set_par(struct fb_info *info)
 		/* we only support RGB ordering for now */
 		switch (var->bits_per_pixel) {
 		case 32:
+#if defined (CONFIG_MACH_STAR)
+		case 24:
+#endif
 			var->red.offset = 0;
 			var->red.length = 8;
 			var->green.offset = 8;
@@ -320,7 +331,27 @@ static int tegra_fb_pan_display(struct fb_var_screeninfo *var,
 	char __iomem *flush_end;
 	u32 addr;
 
+#if defined(CONFIG_PANICRPT)    
+	/*
+	 * when tegra_fb->in_use is 1, it was just opened console
+	 * we have to wait when the surfaceflinger open fb
+	 */
+	if ((atomic_read (&tegra_fb->in_use) == 1) && !panicrpt_ispanic ()) {
+		return 0;
+	}
+	if (panicrpt_ispanic () || !tegra_fb->win->cur_handle) {
+		/*
+		 * when tegra_fb is in sleep(maybe early suspended), don't display report
+		 */
+		if (tegra_fb->win->dc->suspended || !tegra_fb->win->dc->enabled) {
+			return 0;
+		}
+		if (!(tegra_fb->win->flags & TEGRA_WIN_FLAG_ENABLED)) {
+			tegra_fb->win->flags = TEGRA_WIN_FLAG_ENABLED;
+		}
+#else
 	if (!tegra_fb->win->cur_handle) {
+#endif /* CONFIG_PANICRPT */
 		flush_start = info->screen_base + (var->yoffset * info->fix.line_length);
 		flush_end = flush_start + (var->yres * info->fix.line_length);
 
@@ -333,12 +364,37 @@ static int tegra_fb_pan_display(struct fb_var_screeninfo *var,
 		tegra_fb->win->phys_addr = addr;
 		/* TODO: update virt_addr */
 
+
+#if defined (CONFIG_PANICRPT)
+		
+		if( panicrpt_status >= 0 ) {
+			tegra_dc_update_windows(&tegra_fb->win, 1);
+			tegra_dc_sync_windows(&tegra_fb->win, 1);
+		}
+		else{
+			panicrpt_status++;
+		}
+
+		if( panicrpt_ispanic () ) {
+			panicrpt_status = 1;
+		}
+
+#else
 		tegra_dc_update_windows(&tegra_fb->win, 1);
 		tegra_dc_sync_windows(&tegra_fb->win, 1);
+#endif
 	}
 
 	return 0;
 }
+
+
+#if defined (CONFIG_PANICRPT)   
+int panicrpt_status_check( void )
+{
+	return panicrpt_status;
+}
+#endif
 
 static void tegra_fb_fillrect(struct fb_info *info,
 			      const struct fb_fillrect *rect)
@@ -583,6 +639,24 @@ struct tegra_fb_info *tegra_fb_register(struct nvhost_device *ndev,
 
 	dev_info(&ndev->dev, "probed\n");
 
+
+#if defined (CONFIG_PANICRPT)  
+	if ( panicrpt_status > 0) {
+		if (fb_data->flags & TEGRA_FB_FLIP_ON_PROBE) {
+			tegra_dc_update_windows(&tegra_fb->win, 1);
+			tegra_dc_sync_windows(&tegra_fb->win, 1);
+		}
+	}
+	else {
+		//tegra_dc_update_windows(&tegra_fb->win, 1);
+		//tegra_dc_sync_windows(&tegra_fb->win, 1);
+		panicrpt_status++;
+	}
+
+	if( panicrpt_status == 0 )
+		panicrpt_ready(true);
+	
+#else
 	if (fb_data->flags & TEGRA_FB_FLIP_ON_PROBE) {
 		tegra_dc_update_windows(&tegra_fb->win, 1);
 		tegra_dc_sync_windows(&tegra_fb->win, 1);
@@ -592,7 +666,16 @@ struct tegra_fb_info *tegra_fb_register(struct nvhost_device *ndev,
 		struct tegra_dc_mode *mode = &dc->mode;
 
 		if (dc->out->flags & TEGRA_DC_OUT_ONE_SHOT_MODE)
+#if defined (CONFIG_MACH_STAR)
+		{
+			//WAR rated_pclk is h_width_pixels*v_width_lines*60 in bssq and star project
+			info->var.pixclock = KHZ2PICOS(
+			((mode->h_back_porch + mode->h_front_porch + mode->h_sync_width + mode->h_active)*
+			(mode->v_back_porch + mode->v_front_porch + mode->v_sync_width + mode->v_active) * 60) / 1000);
+		}
+#else
 			info->var.pixclock = KHZ2PICOS(mode->rated_pclk / 1000);
+#endif
 		else
 			info->var.pixclock = KHZ2PICOS(mode->pclk / 1000);
 		info->var.left_margin = mode->h_back_porch;
@@ -602,6 +685,7 @@ struct tegra_fb_info *tegra_fb_register(struct nvhost_device *ndev,
 		info->var.hsync_len = mode->h_sync_width;
 		info->var.vsync_len = mode->v_sync_width;
 	}
+#endif
 
 	return tegra_fb;
 

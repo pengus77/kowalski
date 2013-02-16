@@ -53,6 +53,10 @@
 #include <asm/io.h>
 #include <asm/unistd.h>
 
+#if defined(CONFIG_MACH_LGE) && defined(CONFIG_MACH_STAR)
+#include "../arch/arm/mach-tegra/lge/star/include/lge/board-star-nv.h"
+#endif
+
 #ifndef SET_UNALIGN_CTL
 # define SET_UNALIGN_CTL(a,b)	(-EINVAL)
 #endif
@@ -363,6 +367,11 @@ EXPORT_SYMBOL(unregister_reboot_notifier);
  */
 void kernel_restart(char *cmd)
 {
+#if defined(CONFIG_MACH_LGE) && defined(CONFIG_MACH_STAR)
+	unsigned char bootcause[1] = {LGE_NVDATA_RESET_CAUSE_VAL_USER_RESET};
+	lge_nvdata_write(LGE_NVDATA_RESET_CAUSE_OFFSET, bootcause,1);
+#endif
+
 	kernel_restart_prepare(cmd);
 	if (!cmd)
 		printk(KERN_EMERG "Restarting system.\n");
@@ -417,6 +426,11 @@ EXPORT_SYMBOL_GPL(kernel_power_off);
 
 static DEFINE_MUTEX(reboot_mutex);
 
+#if defined (CONFIG_MACH_STAR)
+extern void tegra_cpu_lock_speed(unsigned long min_rate, unsigned long max_rate, int timeout_ms);
+extern void tegra_dvfs_disable_core_cpu(void);
+#endif
+
 /*
  * Reboot system call: for obvious reasons only root may call it,
  * and even root needs to set up some magic numbers in the registers
@@ -450,6 +464,12 @@ SYSCALL_DEFINE4(reboot, int, magic1, int, magic2, unsigned int, cmd,
 		cmd = LINUX_REBOOT_CMD_HALT;
 
 	mutex_lock(&reboot_mutex);
+#if defined (CONFIG_MACH_STAR)	
+#ifdef CONFIG_TEGRA_CPU_FREQ_LOCK
+	tegra_cpu_lock_speed(1000000, 0, 0);
+	tegra_dvfs_disable_core_cpu();
+#endif
+#endif
 	switch (cmd) {
 	case LINUX_REBOOT_CMD_RESTART:
 		kernel_restart(NULL);

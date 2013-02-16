@@ -375,6 +375,13 @@ static int tegra20_i2s_probe(struct snd_soc_dai *dai)
 }
 
 #ifdef CONFIG_PM
+#if defined (CONFIG_MACH_STAR)
+int tegra20_i2s_suspend(struct snd_soc_dai *cpu_dai)
+{
+	tegra20_das_suspend();
+}
+#endif
+
 int tegra20_i2s_resume(struct snd_soc_dai *cpu_dai)
 {
 	struct tegra20_i2s *i2s = snd_soc_dai_get_drvdata(cpu_dai);
@@ -413,6 +420,9 @@ struct snd_soc_dai_driver tegra20_i2s_dai[] = {
 		.name = DRV_NAME ".0",
 		.probe = tegra20_i2s_probe,
 		.resume = tegra20_i2s_resume,
+#if defined (CONFIG_MACH_STAR)
+		.suspend = tegra20_i2s_suspend,
+#endif
 		.playback = {
 			.channels_min = 1,
 			.channels_max = 2,
@@ -432,6 +442,9 @@ struct snd_soc_dai_driver tegra20_i2s_dai[] = {
 		.name = DRV_NAME ".1",
 		.probe = tegra20_i2s_probe,
 		.resume = tegra20_i2s_resume,
+#if defined (CONFIG_MACH_STAR)
+		.suspend = tegra20_i2s_suspend,
+#endif
 		.playback = {
 			.channels_min = 1,
 			.channels_max = 2,

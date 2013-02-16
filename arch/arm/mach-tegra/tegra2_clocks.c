@@ -37,6 +37,9 @@
 #include "fuse.h"
 #include "tegra2_emc.h"
 #include "tegra2_statmon.h"
+#if defined (CONFIG_MACH_STAR)
+#include "pm.h"
+#endif
 
 #define RST_DEVICES			0x004
 #define RST_DEVICES_SET			0x300
@@ -1909,8 +1912,23 @@ static struct clk_pll_freq_table tegra_pll_d_freq_table[] = {
 
 	{ 12000000,   5000000, 10, 24, 1, 4},
 	{ 12000000,  10000000, 10, 12, 1, 4},
+#if defined(CONFIG_MACH_STAR)
+	{ 12000000,  20000000, 20, 12, 1, 4},
+#endif
 	{ 12000000, 161500000, 323, 24, 1, 4},
 	{ 12000000, 162000000, 162, 12, 1, 4},
+
+#if defined(CONFIG_MACH_STAR)
+	{ 12000000, 321000000, 107, 4, 1, 4},
+	{ 12000000, 326000000, 326, 12, 1, 4},
+	{ 12000000, 327000000, 327, 12, 1, 4},
+	{ 12000000, 354000000, 354, 12, 1, 4},
+	{ 12000000, 355000000, 355, 12, 1, 4},
+	{ 12000000, 348000000, 348, 12, 1, 4},
+	{ 12000000, 349000000, 349, 12, 1, 4},
+	{ 12000000, 388000000, 388, 12, 1, 4},
+	{ 12000000, 389000000, 389, 12, 1, 4},
+#endif
 
 	{ 12000000, 594000000, 594, 12, 1, 8},
 	{ 13000000, 594000000, 594, 13, 1, 8},
@@ -2776,6 +2794,11 @@ static int tegra_clk_suspend(void)
 	unsigned long off, i;
 	u32 *ctx = clk_rst_suspend;
 
+#if defined (CONFIG_MACH_STAR)	
+        if (tegra_get_current_suspend_mode() != TEGRA_SUSPEND_LP0)
+        	return;
+#endif
+
 	*ctx++ = clk_readl(OSC_CTRL) & OSC_CTRL_MASK;
 	*ctx++ = clk_readl(tegra_pll_c.reg + PLL_BASE);
 	*ctx++ = clk_readl(tegra_pll_c.reg + PLL_MISC(&tegra_pll_c));
@@ -2829,6 +2852,11 @@ static void tegra_clk_resume(void)
 	unsigned long off, i;
 	const u32 *ctx = clk_rst_suspend;
 	u32 val;
+
+#if defined (CONFIG_MACH_STAR)
+        if (tegra_get_current_suspend_mode() != TEGRA_SUSPEND_LP0)
+        	return;
+#endif
 
 	val = clk_readl(OSC_CTRL) & ~OSC_CTRL_MASK;
 	val |= *ctx++;

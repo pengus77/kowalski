@@ -98,6 +98,9 @@ struct tegra20_das {
 
 #ifdef CONFIG_PM
 /* Restores the das registers from cache */
+#if defined (CONFIG_MACH_STAR)
+extern int tegra20_das_suspend();
+#endif
 extern int tegra20_das_resume();
 #endif
 /*

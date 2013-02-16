@@ -32,6 +32,10 @@
 #include <linux/of_gpio.h>
 #include <linux/spinlock.h>
 
+#if defined(CONFIG_MACH_STAR_SU660)
+static bool is_ua_mode = false;
+#endif
+
 struct gpio_button_data {
 	const struct gpio_keys_button *button;
 	struct input_dev *input;
@@ -52,6 +56,104 @@ struct gpio_keys_drvdata {
 	void (*disable)(struct device *dev);
 	struct gpio_button_data data[0];
 };
+
+#if defined(CONFIG_MACH_STAR_SU660)
+extern bool in_call_state();
+bool islp1checkon = false;
+#endif
+
+#ifdef CONFIG_MACH_STAR
+extern void write_cmd_reserved_buffer(unsigned char *buf, size_t len);
+extern void read_cmd_reserved_buffer(unsigned char *buf, size_t len);
+extern void emergency_restart(void);
+static ssize_t star_reset_show(struct device *dev, 
+		struct device_attribute *attr, char *buf)
+{
+
+	unsigned char tmpbuf[3];
+	int ret;
+	int tag;
+
+	read_cmd_reserved_buffer(tmpbuf, 3);
+
+#define _COLDBOOT          0   
+#define _NORMAL_WARMBOOT   1
+#define _HIDDEN_RESET      2
+
+	if (('p' == tmpbuf[0])||('z' == tmpbuf[0]))
+	{
+		tag = _HIDDEN_RESET;
+		ret = sprintf(buf,"%d\n",tag);
+		tmpbuf[1] = NULL; tmpbuf[2] = NULL;
+		write_cmd_reserved_buffer(tmpbuf,3);
+		return ret;
+	}
+
+	if ('w' == tmpbuf[0])
+	{
+		switch (tmpbuf[1])
+		{
+			case 'm': // reboot immediately
+			case 'a': // panic
+				tag = _HIDDEN_RESET;
+				tmpbuf[2] = NULL;
+				break;
+			case 'e': //recovery
+				tag = _NORMAL_WARMBOOT;
+				tmpbuf[2] = NULL;
+				break;
+			default : // reboot other case (ex adb)
+				tag = _NORMAL_WARMBOOT;
+				tmpbuf[1] = NULL; tmpbuf[2] = NULL;
+				break;
+		}
+	}
+	else
+	{
+		tag = _COLDBOOT; 
+		memset(tmpbuf,NULL,3);
+	}    
+	ret = sprintf(buf,"%d\n",tag);
+	write_cmd_reserved_buffer(tmpbuf,3);
+	return ret;
+}
+
+static ssize_t star_reset_store(struct device *dev, 
+		struct device_attribute *attr, char *buf, size_t count)
+{
+
+	unsigned char tmpbuf[3] = { NULL, };
+	tmpbuf[0] = 'w'; // index for warm-boot
+	write_cmd_reserved_buffer(tmpbuf,3);
+	emergency_restart();
+	return count;
+}
+
+DEVICE_ATTR(reset, S_IRUGO | S_IWUGO, star_reset_show, star_reset_store);
+#endif
+
+#if defined(CONFIG_MACH_STAR_SU660)
+static ssize_t ignore_key_event_show(struct device *dev, 
+		struct device_attribute *attr, char *buf)
+{
+    return sprintf(buf, "%d\n", is_ua_mode);
+}
+
+static ssize_t ignore_key_event_store(struct device *dev, 
+		struct device_attribute *attr, char *buf, size_t count)
+{
+    unsigned long value = simple_strtoul(buf, NULL, 10);
+
+    if(value == 1) {
+        is_ua_mode = true;
+    } else if(value == 0) {
+        is_ua_mode = false;
+    }
+
+	return count;
+}
+DEVICE_ATTR(ignore_key_event, S_IRUGO|S_IWUSR|S_IWGRP, ignore_key_event_show, ignore_key_event_store);
+#endif
 
 /*
  * SYSFS interface for enabling/disabling keys and switches:
@@ -319,6 +421,9 @@ static struct attribute *gpio_keys_attrs[] = {
 	&dev_attr_switches.attr,
 	&dev_attr_disabled_keys.attr,
 	&dev_attr_disabled_switches.attr,
+#if defined(CONFIG_MACH_STAR_SU660)
+   	&dev_attr_ignore_key_event.attr,
+#endif
 	NULL,
 };
 
@@ -360,6 +465,13 @@ static void gpio_keys_gpio_timer(unsigned long _data)
 static irqreturn_t gpio_keys_gpio_isr(int irq, void *dev_id)
 {
 	struct gpio_button_data *bdata = dev_id;
+
+#if defined(CONFIG_MACH_STAR_SU660)
+	if(is_ua_mode)
+	{
+		return IRQ_HANDLED;
+	}
+#endif
 
 	BUG_ON(irq != bdata->irq);
 
@@ -733,7 +845,19 @@ static int __devinit gpio_keys_probe(struct platform_device *pdev)
 
 	device_init_wakeup(&pdev->dev, wakeup);
 
+#ifdef CONFIG_MACH_STAR
+	int ret;
+	ret = device_create_file(&pdev->dev, &dev_attr_reset);
+	if (ret) {
+		goto dev_attr_reset_file_create_fail;
+	}
+#endif
 	return 0;
+
+#ifdef CONFIG_MACH_STAR
+dev_attr_reset_file_create_fail:
+	device_remove_file(&pdev->dev, &dev_attr_reset);
+#endif
 
  fail3:
 	sysfs_remove_group(&pdev->dev.kobj, &gpio_keys_attr_group);
@@ -760,6 +884,9 @@ static int __devexit gpio_keys_remove(struct platform_device *pdev)
 
 	sysfs_remove_group(&pdev->dev.kobj, &gpio_keys_attr_group);
 
+#ifdef	CONFIG_MACH_STAR
+	device_remove_file(&pdev->dev, &dev_attr_reset);
+#endif
 	device_init_wakeup(&pdev->dev, 0);
 
 	for (i = 0; i < ddata->n_buttons; i++)
@@ -791,6 +918,16 @@ static int gpio_keys_suspend(struct device *dev)
 			struct gpio_button_data *bdata = &ddata->data[i];
 			if (bdata->button->wakeup)
 				enable_irq_wake(bdata->irq);
+#if defined(CONFIG_MACH_STAR_SU660)
+			else
+			{
+				if(in_call_state())
+				{
+					enable_irq_wake(bdata->irq);
+					islp1checkon = true;
+				}
+			}
+#endif
 		}
 	}
 
@@ -820,10 +957,22 @@ static int gpio_keys_resume(struct device *dev)
 				input_sync(ddata->input);
 			}
 		}
+#if defined(CONFIG_MACH_STAR_SU660)
+		else
+		{
+			if(islp1checkon == true)
+				disable_irq_wake(bdata->irq);
+		}
+#endif
 
 		if (gpio_is_valid(bdata->button->gpio))
 			gpio_keys_gpio_report_event(bdata);
 	}
+#if defined(CONFIG_MACH_STAR_SU660)
+	if(islp1checkon == true) {
+		islp1checkon = false;
+	}
+#endif 
 	input_sync(ddata->input);
 
 	return 0;

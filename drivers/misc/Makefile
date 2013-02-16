@@ -40,6 +40,7 @@ obj-$(CONFIG_IWMC3200TOP)      += iwmc3200top/
 obj-$(CONFIG_HMC6352)		+= hmc6352.o
 obj-y				+= eeprom/
 obj-y				+= cb710/
+obj-$(CONFIG_MAX14526)          += muic/
 obj-$(CONFIG_SPEAR13XX_PCIE_GADGET)	+= spear13xx_pcie_gadget.o
 obj-$(CONFIG_VMWARE_BALLOON)	+= vmw_balloon.o
 obj-$(CONFIG_ARM_CHARLCD)	+= arm-charlcd.o
@@ -53,8 +54,18 @@ obj-$(CONFIG_WL127X_RFKILL)	+= wl127x-rfkill.o
 obj-$(CONFIG_APANIC)		+= apanic.o
 obj-$(CONFIG_SENSORS_AK8975)	+= akm8975.o
 obj-$(CONFIG_SENSORS_NCT1008)	+= nct1008.o
+ifeq ($(CONFIG_MACH_STAR), y)
+obj-$(CONFIG_BCM4329_RFKILL)	+= lbee9qmb-rfkill.o
+else
 obj-$(CONFIG_BCM4329_RFKILL)	+= bcm4329_rfkill.o
+endif
 obj-$(CONFIG_INV_SENSORS)      += inv_mpu/
+obj-$(CONFIG_BD_ADDRESS)	+= bd_address.o
+obj-y				+= bthid/
 obj-$(CONFIG_TEGRA_CRYPTO_DEV)	+= tegra-cryptodev.o
 obj-$(CONFIG_TEGRA_BB_SUPPORT)	+= tegra-baseband/
 obj-$(CONFIG_MAX1749_VIBRATOR)	+= max1749.o
+obj-$(CONFIG_STAR_TOUCH_LED)	+= star_led.o
+obj-$(CONFIG_STAR_VIBRATOR)	+= vibrator.o
+obj-$(CONFIG_TSPDRV)            += tspdrv/
+obj-$(CONFIG_STAR_HALL)		+= bu52031nvx.o

@@ -18,6 +18,11 @@
 #include <linux/mfd/core.h>
 #include <linux/mfd/max8907c.h>
 
+#if defined(CONFIG_MACH_STAR_DUMP_GPIO)
+#include "../../arch/arm/mach-tegra/include/mach/pinmux-t2.h"
+#include "../../arch/arm/mach-tegra/include/mach/pinmux.h"
+#endif
+
 struct max8907c_irq_data {
 	int	reg;
 	int	mask_reg;
@@ -387,8 +392,13 @@ int max8907c_suspend(struct i2c_client *i2c, pm_message_t state)
 
 	max8907c_reg_write(chip->i2c_power, MAX8907C_REG_CHG_IRQ1_MASK, irq_chg[0]);
 	max8907c_reg_write(chip->i2c_power, MAX8907C_REG_CHG_IRQ2_MASK, irq_chg[1]);
+#if defined (CONFIG_MACH_STAR)
+	max8907c_reg_write(chip->i2c_power, MAX8907C_REG_ON_OFF_IRQ1_MASK, 0xff);
+	max8907c_reg_write(chip->i2c_power, MAX8907C_REG_ON_OFF_IRQ2_MASK, 0xff);
+#else
 	max8907c_reg_write(chip->i2c_power, MAX8907C_REG_ON_OFF_IRQ1_MASK, irq_on[0]);
 	max8907c_reg_write(chip->i2c_power, MAX8907C_REG_ON_OFF_IRQ2_MASK, irq_on[1]);
+#endif
 	max8907c_reg_write(chip->i2c_rtc, MAX8907C_REG_RTC_IRQ_MASK, irq_rtc);
 
 	if (device_may_wakeup(chip->dev))
@@ -399,9 +409,31 @@ int max8907c_suspend(struct i2c_client *i2c, pm_message_t state)
 	return 0;
 }
 
+#if defined(CONFIG_MACH_STAR_DUMP_GPIO)
+#define TRISTATE_REG_A         0x14
+#define TRISTATE_REG_NUM       4
+#define PIN_MUX_CTL_REG_A      0x80
+#define PIN_MUX_CTL_REG_NUM    8
+#define PULLUPDOWN_REG_A       0xa0
+#define PULLUPDOWN_REG_NUM     5
+
+static DEFINE_SPINLOCK(dump_spinlock);
+char gpio_regs_buf_suspend[PAGE_SIZE];
+extern const struct tegra_drive_pingroup_desc tegra_soc_drive_pingroups[TEGRA_MAX_DRIVE_PINGROUP];
+
+extern u32 pinmux_reg[TRISTATE_REG_NUM + PIN_MUX_CTL_REG_NUM +
+PULLUPDOWN_REG_NUM +
+ARRAY_SIZE(tegra_soc_drive_pingroups)];
+#endif
+
 int max8907c_resume(struct i2c_client *i2c)
 {
 	struct max8907c *chip = i2c_get_clientdata(i2c);
+
+#if defined(CONFIG_MACH_STAR_DUMP_GPIO)
+	u32 *ctx = pinmux_reg;
+	int i;
+#endif
 
 	if (device_may_wakeup(chip->dev))
 		disable_irq_wake(chip->core_irq);
@@ -413,6 +445,24 @@ int max8907c_resume(struct i2c_client *i2c)
 	max8907c_reg_write(chip->i2c_power, MAX8907C_REG_ON_OFF_IRQ1_MASK, chip->cache_on[0]);
 	max8907c_reg_write(chip->i2c_power, MAX8907C_REG_ON_OFF_IRQ2_MASK, chip->cache_on[1]);
 	max8907c_reg_write(chip->i2c_rtc, MAX8907C_REG_RTC_IRQ_MASK, chip->cache_rtc);
+
+#if defined(CONFIG_MACH_STAR_DUMP_GPIO)
+
+	spin_lock(&dump_spinlock);
+	pr_info("\n==>dump pinmux regs\n");
+	for (i = 0; i < TEGRA_MAX_PINGROUP; i++)
+		pr_info("%16s %8x\n", tegra_soc_pingroups[i].name, *ctx++);
+
+	pr_info("\n==>dump pinmux drive regs\n");
+	for (i = 0; i < ARRAY_SIZE(tegra_soc_drive_pingroups); i++)
+		pr_info("%16s %8x\n", tegra_soc_drive_pingroups[i].name, *ctx++);
+
+	pr_info("\n==>dump gpio regs\n");
+	pr_info("Bank:Port CNF OE OUT\n");
+	pr_info("%s\n", gpio_regs_buf_suspend);
+
+	spin_unlock(&dump_spinlock);
+#endif
 
 	return 0;
 }

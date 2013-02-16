@@ -31,6 +31,9 @@
 #include <mach/iomap.h>
 #include <mach/pinmux.h>
 #include "gpio-names.h"
+#if defined (CONFIG_MACH_STAR)
+#include "pm.h"
+#endif
 
 #define SET_DRIVE_PINGROUP(pg_name, r, drv_down_offset, drv_down_mask, drv_up_offset, drv_up_mask,	\
 	slew_rise_offset, slew_rise_mask, slew_fall_offset, slew_fall_mask)	\
@@ -270,9 +273,16 @@ const int gpio_to_pingroup[TEGRA_MAX_GPIO] = {
 #define PULLUPDOWN_REG_A       0xa0
 #define PULLUPDOWN_REG_NUM     5
 
+#if defined(CONFIG_MACH_STAR_DUMP_GPIO)
+u32 pinmux_reg[TRISTATE_REG_NUM + PIN_MUX_CTL_REG_NUM +
+                      PULLUPDOWN_REG_NUM +
+                      ARRAY_SIZE(tegra_soc_drive_pingroups)];
+#else
+
 static u32 pinmux_reg[TRISTATE_REG_NUM + PIN_MUX_CTL_REG_NUM +
 		      PULLUPDOWN_REG_NUM +
 		      ARRAY_SIZE(tegra_soc_drive_pingroups)];
+#endif
 
 static inline unsigned long pg_readl(unsigned long offset)
 {
@@ -288,6 +298,11 @@ static int tegra_pinmux_suspend(void)
 {
 	unsigned int i;
 	u32 *ctx = pinmux_reg;
+
+#if defined (CONFIG_MACH_STAR)	
+	if (tegra_get_current_suspend_mode() != TEGRA_SUSPEND_LP0)
+		return 0;
+#endif
 
 	for (i = 0; i < PIN_MUX_CTL_REG_NUM; i++)
 		*ctx++ = pg_readl(PIN_MUX_CTL_REG_A + i*4);
@@ -308,6 +323,11 @@ static void tegra_pinmux_resume(void)
 {
 	unsigned int i;
 	u32 *ctx = pinmux_reg;
+#if defined (CONFIG_MACH_STAR)
+
+	if (tegra_get_current_suspend_mode() != TEGRA_SUSPEND_LP0)
+		return;
+#endif
 
 	for (i = 0; i < PIN_MUX_CTL_REG_NUM; i++)
 		pg_writel(*ctx++, PIN_MUX_CTL_REG_A + i*4);

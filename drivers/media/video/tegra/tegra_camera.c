@@ -57,6 +57,16 @@ struct tegra_camera_block {
 	bool is_enabled;
 };
 
+#if defined (CONFIG_MACH_STAR)
+static int current_usecase;
+static int current_resolution[4];
+#endif
+
+#ifdef CONFIG_TEGRA_CPU_FREQ_LOCK
+extern void tegra_cpu_lock_speed(unsigned long min_rate, unsigned long max_rate, int timeout_ms);
+extern void tegra_cpu_unlock_speed(void);
+#endif /* CONFIG_TEGRA_CPU_FREQ_LOCK */
+
 static int tegra_camera_enable_isp(struct tegra_camera_dev *dev)
 {
 	return clk_enable(dev->isp_clk);
@@ -224,13 +234,22 @@ static int tegra_camera_clk_set_rate(struct tegra_camera_dev *dev)
 static int tegra_camera_reset(struct tegra_camera_dev *dev, uint id)
 {
 	struct clk *clk;
+#if defined (CONFIG_MACH_STAR)	
+	int mc_client = -1;
+#endif
 
 	switch (id) {
 	case TEGRA_CAMERA_MODULE_VI:
 		clk = dev->vi_clk;
+#if defined (CONFIG_MACH_STAR)
+		mc_client = TEGRA_POWERGATE_VENC;
+#endif
 		break;
 	case TEGRA_CAMERA_MODULE_ISP:
 		clk = dev->isp_clk;
+#if defined (CONFIG_MACH_STAR)
+		mc_client = TEGRA_POWERGATE_VENC;
+#endif
 		break;
 	case TEGRA_CAMERA_MODULE_CSI:
 		clk = dev->csi_clk;
@@ -238,9 +257,32 @@ static int tegra_camera_reset(struct tegra_camera_dev *dev, uint id)
 	default:
 		return -EINVAL;
 	}
+
+#if defined (CONFIG_MACH_STAR)
+	if (mc_client != -1)
+		tegra_powergate_mc_disable(mc_client);
+#endif
+
 	tegra_periph_reset_assert(clk);
+
+#if defined (CONFIG_MACH_STAR)
+	if (mc_client != -1)
+		tegra_powergate_mc_flush(mc_client);
+#endif
+
 	udelay(10);
+
+#if defined (CONFIG_MACH_STAR)
+	if (mc_client != -1)
+		tegra_powergate_mc_flush_done(mc_client);
+#endif
+
 	tegra_periph_reset_deassert(clk);
+
+#if defined (CONFIG_MACH_STAR)
+	if (mc_client != -1)
+		tegra_powergate_mc_enable(mc_client);
+#endif
 
 	return 0;
 }
@@ -382,6 +424,61 @@ static long tegra_camera_ioctl(struct file *file,
 	}
 	case TEGRA_CAMERA_IOCTL_RESET:
 		return tegra_camera_reset(dev, id);
+
+#if defined (CONFIG_MACH_STAR)
+	case TEGRA_CAMERA_IOCTL_CAMERA_USECASE:
+	{
+		int buf[2];
+
+		if (copy_from_user(buf, (const void __user *)arg, sizeof(buf))){
+			pr_err("%s: Failed to copy arg from user\n", __func__);
+			return -EFAULT;
+		}
+		mutex_lock(&dev->tegra_camera_lock);
+		current_usecase = buf[1];
+
+#ifdef CONFIG_TEGRA_CPU_FREQ_LOCK
+		if (current_usecase == CAMERA_USECASE_PREVIEW)
+			// need test to optimize
+			tegra_cpu_lock_speed(312000, 760000, 0); /* min and max cpu clock for preview */
+		else if (current_usecase == CAMERA_USECASE_CAMERA_CAPTURE)
+			tegra_cpu_lock_speed(1000000, 0, 5000); /* for snapshot performance */
+		else if (current_usecase == CAMERA_USECASE_VIDEO_RECORD)
+		{
+			if (current_resolution[1]*current_resolution[2]*current_resolution[3] >= 1280*720*30)
+			{
+				tegra_cpu_lock_speed(816000, 0, 0); /* for hd-video performance */
+			}
+			else
+			{
+				tegra_cpu_unlock_speed();
+			}
+		}
+		else if(current_usecase == CAMERA_USECASE_PREVIEW_STOP)
+		    tegra_cpu_lock_speed(1000000, 0, 5000); /* for stoping performance */
+		else
+			tegra_cpu_unlock_speed();
+#endif /* CONFIG_TEGRA_CPU_FREQ_LOCK */
+
+		mutex_unlock(&dev->tegra_camera_lock);
+		break;
+	}
+	case TEGRA_CAMERA_IOCTL_CAMERA_MODE:
+	{
+
+		mutex_lock(&dev->tegra_camera_lock);
+		if (copy_from_user(current_resolution, (const void __user *)arg,
+					sizeof(current_resolution))){
+			pr_err("%s: Failed to copy arg from user\n", __func__);
+			mutex_unlock(&dev->tegra_camera_lock);
+			return -EFAULT;
+		}
+
+		mutex_unlock(&dev->tegra_camera_lock);
+		break;
+	}
+#endif
+
 	default:
 		dev_err(dev->dev,
 				"%s: Unknown tegra_camera ioctl.\n", __func__);

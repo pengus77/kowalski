@@ -62,21 +62,36 @@ static int dapm_up_seq[] = {
 	[snd_soc_dapm_dac] = 6,
 	[snd_soc_dapm_mixer] = 7,
 	[snd_soc_dapm_mixer_named_ctl] = 7,
+#if defined (CONFIG_MACH_STAR)
+	[snd_soc_dapm_adc] = 8,
+	[snd_soc_dapm_pga] = 10,
+	[snd_soc_dapm_hp] = 11,
+	[snd_soc_dapm_spk] = 11,
+	[snd_soc_dapm_post] = 12,
+#else
 	[snd_soc_dapm_pga] = 8,
 	[snd_soc_dapm_adc] = 9,
 	[snd_soc_dapm_out_drv] = 10,
 	[snd_soc_dapm_hp] = 10,
 	[snd_soc_dapm_spk] = 10,
 	[snd_soc_dapm_post] = 11,
+#endif
 };
 
 static int dapm_down_seq[] = {
 	[snd_soc_dapm_pre] = 0,
+#if defined (CONFIG_MACH_STAR)
+	[snd_soc_dapm_hp] = 1,
+	[snd_soc_dapm_spk] = 1,
+	[snd_soc_dapm_pga] = 2,
+	[snd_soc_dapm_adc] = 4,
+#else
 	[snd_soc_dapm_adc] = 1,
 	[snd_soc_dapm_hp] = 2,
 	[snd_soc_dapm_spk] = 2,
 	[snd_soc_dapm_out_drv] = 2,
 	[snd_soc_dapm_pga] = 4,
+#endif
 	[snd_soc_dapm_mixer_named_ctl] = 5,
 	[snd_soc_dapm_mixer] = 5,
 	[snd_soc_dapm_dac] = 6,
@@ -90,6 +105,10 @@ static int dapm_down_seq[] = {
 	[snd_soc_dapm_supply] = 11,
 	[snd_soc_dapm_post] = 12,
 };
+
+#if defined (CONFIG_MACH_STAR)
+static DEFINE_MUTEX(soc_dapm_seq_mutex); 
+#endif
 
 static void pop_wait(u32 pop_time)
 {
@@ -1191,6 +1210,9 @@ static int dapm_power_widgets(struct snd_soc_dapm_context *dapm, int event)
 	LIST_HEAD(async_domain);
 	enum snd_soc_bias_level bias;
 	int power;
+#if defined (CONFIG_MACH_STAR)
+	mutex_lock(&soc_dapm_seq_mutex); 
+#endif
 
 	trace_snd_soc_dapm_start(card);
 
@@ -1286,6 +1308,7 @@ static int dapm_power_widgets(struct snd_soc_dapm_context *dapm, int event)
 		}
 	}
 
+#ifndef CONFIG_MACH_STAR
 	/* Force all contexts in the card to the same bias state */
 	bias = SND_SOC_BIAS_OFF;
 	list_for_each_entry(d, &card->dapm_list, list)
@@ -1293,6 +1316,7 @@ static int dapm_power_widgets(struct snd_soc_dapm_context *dapm, int event)
 			bias = d->target_bias_level;
 	list_for_each_entry(d, &card->dapm_list, list)
 		d->target_bias_level = bias;
+#endif
 
 
 	/* Run all the bias changes in parallel */
@@ -1314,6 +1338,9 @@ static int dapm_power_widgets(struct snd_soc_dapm_context *dapm, int event)
 		async_schedule_domain(dapm_post_sequence_async, d,
 					&async_domain);
 	async_synchronize_full_domain(&async_domain);
+#if defined (CONFIG_MACH_STAR)
+	mutex_unlock(&soc_dapm_seq_mutex); 
+#endif
 
 	pop_dbg(dapm->dev, card->pop_time,
 		"DAPM sequencing finished, waiting %dms\n", card->pop_time);

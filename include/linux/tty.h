@@ -31,8 +31,14 @@
 #define N_V253		19	/* Codec control over voice modem */
 #define N_CAIF		20      /* CAIF protocol for talking to modems */
 #define N_GSM0710	21	/* GSM 0710 Mux */
+#if defined(CONFIG_MACH_STAR)
+#define N_TS2710        21      /* GSM 0710 Mux */
+#endif
 #define N_TI_WL		22	/* for TI's WL BT, FM, GPS combo chips */
 #define N_TRACESINK	23	/* Trace data routing for MIPI P1149.7 */
+#if defined(CONFIG_MACH_STAR)
+#define N_RIN           23
+#endif
 #define N_TRACEROUTER	24	/* Trace data routing for MIPI P1149.7 */
 
 #ifdef __KERNEL__

@@ -2,6 +2,9 @@ if ARCH_TEGRA
 
 comment "NVIDIA Tegra options"
 
+config MACH_LGE
+        bool
+
 config ARCH_TEGRA_2x_SOC
 	bool "Tegra 2 family SOC"
 	default y
@@ -174,6 +177,18 @@ config MACH_KAI
        select MACH_HAS_SND_SOC_TEGRA_RT5640 if SND_SOC
        help
          Support for NVIDIA KAI development platform
+
+menuconfig MACH_STAR
+       depends on ARCH_TEGRA_2x_SOC
+       select MACH_LGE
+       select MACH_HAS_SND_SOC_TEGRA_WM8994 if SND_SOC
+       bool "TEGRA STAR"
+       help
+         Support for the LGE STAR
+
+if MACH_STAR
+source "arch/arm/mach-tegra/lge/star/Kconfig"
+endif #MACH_STAR
 
 choice
        prompt "Tegra platform type"
@@ -402,6 +417,17 @@ config TEGRA_STAT_MON
 config USB_HOTPLUG
 	bool "Enabling the USB hotplug"
 	default n
+
+config TEGRA_GADGET_BOOST_CPU_FREQ
+        int "Boost cpu frequency for tegra usb gadget (0-1300 mhz)"
+        range 0 1300
+        default 0
+        help
+          Devices need to boost frequency of CPU when they are connected
+          to host pc through usb cable for better performance. This value
+          is the amount of the frequency (in mhz) to be boosted. If it is
+          zero boosting frequency will not be enabled. This value will be
+          used only by usb gadget driver.
 
 config TEGRA_DYNAMIC_PWRDET
 	bool "Enable dynamic activation of IO level auto-detection"

@@ -181,6 +181,9 @@ static __initdata struct tegra_clk_init_table common_clk_init_table[] = {
 	{ "sclk",	"pll_p_out4",	102000000,	true },
 	{ "hclk",	"sclk",		102000000,	true },
 	{ "pclk",	"hclk",		51000000,	true },
+#if defined (CONFIG_MACH_STAR)	
+	{ "wake.sclk",	NULL,		40000000,	true },
+#endif
 	{ "sbc5.sclk",	NULL,		40000000,	false},
 	{ "sbc6.sclk",	NULL,		40000000,	false},
 #endif
@@ -871,6 +874,7 @@ void __init tegra_reserve(unsigned long carveout_size, unsigned long fb_size,
 	}
 #endif
 
+#ifndef CONFIG_CM_BOOTLOADER_COMPAT
 	if (tegra_lp0_vec_size &&
 	   (tegra_lp0_vec_start < memblock_end_of_DRAM())) {
 		if (memblock_reserve(tegra_lp0_vec_start, tegra_lp0_vec_size)) {
@@ -881,6 +885,7 @@ void __init tegra_reserve(unsigned long carveout_size, unsigned long fb_size,
 		}
 		tegra_lp0_vec_relocate = false;
 	} else
+#endif
 		tegra_lp0_vec_relocate = true;
 
 	/*
@@ -958,6 +963,10 @@ void __init tegra_ram_console_debug_reserve(unsigned long ram_console_size)
 	ret = memblock_remove(res->start, ram_console_size);
 	if (ret)
 		goto fail;
+
+#ifdef CONFIG_STAR_REBOOT_MONITOR
+	res->end = res->start + ram_console_size/2 -1;
+#endif
 
 	return;
 

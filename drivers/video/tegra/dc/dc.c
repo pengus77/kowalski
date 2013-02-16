@@ -39,6 +39,11 @@
 #include <linux/switch.h>
 #endif
 
+#ifdef CONFIG_MACH_STAR
+#include <linux/gpio.h>
+#include <../../../../arch/arm/mach-tegra/gpio-names.h>
+#include <../../../../arch/arm/mach-tegra/lge/star/include/lge/board-star.h>
+#endif
 
 #include <mach/clk.h>
 #include <mach/dc.h>
@@ -63,9 +68,19 @@
 #define ALL_UF_INT (0)
 #endif
 
+#if defined (CONFIG_PANICRPT)   
+extern int panicrpt_status_check(void);
+extern int panicrpt_ispanic(void);
+static bool start_panicrpt = false;
+#endif
+
 static int no_vsync;
 
 static void _tegra_dc_controller_disable(struct tegra_dc *dc);
+
+#if defined (CONFIG_MACH_STAR)
+static int dc_lcd_first_reset_skip = 1;
+#endif
 
 module_param_named(no_vsync, no_vsync, int, S_IRUGO | S_IWUSR);
 
@@ -89,6 +104,15 @@ static const struct {
 	/* Window C has only H filtering */
 	{ false, true  },
 };
+
+
+#if defined(CONFIG_PANICRPT) 
+void panicrpt_ready( bool flag )
+{
+	start_panicrpt = flag;
+}
+#endif
+
 static inline bool win_use_v_filter(const struct tegra_dc_win *win)
 {
 	return can_filter[win->idx].v &&
@@ -948,11 +972,20 @@ static unsigned long tegra_dc_calc_win_bandwidth(struct tegra_dc *dc,
 		(win_use_v_filter(w) ? 2 : 1) * dfixed_trunc(w->w) / w->out_w *
 		(WIN_IS_TILED(w) ? tiled_windows_bw_multiplier : 1);
 
+#ifdef CONFIG_MACH_STAR
+/*
+ * Assuming 60% efficiency: i.e. if we calculate we need 70MBps, we
+ * will request 117MBps from EMC.
+ */
+/* doulble for margin */
+	ret = ret * 2 + (17 * ret / 25);
+#else
 /*
  * Assuming 48% efficiency: i.e. if we calculate we need 70MBps, we
  * will request 147MBps from EMC.
  */
 	ret = ret * 2 + ret / 10;
+#endif
 
 	/* if overflowed */
 	if (ret > (1UL << 31))
@@ -1267,9 +1300,25 @@ int tegra_dc_update_windows(struct tegra_dc_win *windows[], int n)
 		}
 	}
 
+#ifdef CONFIG_MACH_LGE
+#if defined (CONFIG_PANICRPT)   
+	if ( start_panicrpt ) {
+		if ( panicrpt_ispanic() && panicrpt_status_check()>0 )
+			return 0;
+	}
+#endif		 	
+#endif
+
 	tegra_dc_set_dynamic_emc(windows, n);
 
 	tegra_dc_writel(dc, update_mask << 8, DC_CMD_STATE_CONTROL);
+
+#if defined (CONFIG_MACH_STAR)
+	tegra_dc_writel(dc, update_mask, DC_CMD_STATE_CONTROL);
+
+	/* update EMC clock if calculated bandwidth has changed */
+	tegra_dc_program_bandwidth(dc);
+#endif
 
 	tegra_dc_writel(dc, FRAME_END_INT | V_BLANK_INT, DC_CMD_INT_STATUS);
 	if (!no_vsync) {
@@ -1411,7 +1460,11 @@ void tegra_dc_setup_clk(struct tegra_dc *dc, struct clk *clk)
 {
 	int pclk;
 
+#if defined (CONFIG_MACH_STAR)
+	if ((dc->out->type == TEGRA_DC_OUT_RGB) || (dc->out->type == TEGRA_DC_OUT_CPU)) {
+#else
 	if (dc->out->type == TEGRA_DC_OUT_RGB) {
+#endif
 		unsigned long rate;
 		struct clk *parent_clk =
 			clk_get_sys(NULL, dc->out->parent_clk ? : "pll_p");
@@ -1442,6 +1495,26 @@ void tegra_dc_setup_clk(struct tegra_dc *dc, struct clk *clk)
 	}
 
 	if (dc->out->type == TEGRA_DC_OUT_HDMI) {
+#if defined (CONFIG_MACH_STAR)
+		//use pll_c for 1080p/720p and pll_p for 480p instead of pll_d which is used for MIPI DSI LCD
+		unsigned long rate;
+		struct clk *base_clk;
+
+		if (dc->mode.pclk > 70000000) {
+			rate = 445500000;
+			base_clk = clk_get_sys(NULL, "pll_c");
+
+			if (rate != clk_get_rate(base_clk))
+				clk_set_rate(base_clk, rate);
+		}
+		else {
+			rate = 216000000;
+			base_clk = clk_get_sys(NULL, "pll_p");
+		}
+
+		if (clk_get_parent(clk) != base_clk)
+			clk_set_parent(clk, base_clk);
+#else
 		unsigned long rate;
 		struct clk *parent_clk =
 			clk_get_sys(NULL, dc->out->parent_clk ? : "pll_d_out0");
@@ -1459,6 +1532,7 @@ void tegra_dc_setup_clk(struct tegra_dc *dc, struct clk *clk)
 
 		if (clk_get_parent(clk) != parent_clk)
 			clk_set_parent(clk, parent_clk);
+#endif
 	}
 
 	if (dc->out->type == TEGRA_DC_OUT_DSI) {
@@ -1466,6 +1540,11 @@ void tegra_dc_setup_clk(struct tegra_dc *dc, struct clk *clk)
 		struct clk *parent_clk;
 		struct clk *base_clk;
 
+#if defined (CONFIG_MACH_STAR)		
+		parent_clk = clk_get_sys(NULL,
+			dc->out->parent_clk ? : "pll_d_out0");
+			base_clk = clk_get_parent(parent_clk);
+#else
 		if (clk == dc->clk) {
 			parent_clk = clk_get_sys(NULL,
 					dc->out->parent_clk ? : "pll_d_out0");
@@ -1487,6 +1566,7 @@ void tegra_dc_setup_clk(struct tegra_dc *dc, struct clk *clk)
 						TEGRA_CLK_PLLD_DSI_OUT_ENB, 1);
 			}
 		}
+#endif
 
 		rate = dc->mode.pclk * dc->shift_clk_div * 2;
 		if (rate != clk_get_rate(base_clk))
@@ -1717,8 +1797,15 @@ static int tegra_dc_program_mode(struct tegra_dc *dc, struct tegra_dc_mode *mode
 
 	div = (rate * 2 / pclk) - 2;
 
+#ifdef CONFIG_MACH_STAR
+	/* clock-related settings copied from fastboot dc init code */
+	tegra_dc_writel(dc, 0x00010012,
+			DC_DISP_SHIFT_CLOCK_OPTIONS);
+#else
 	tegra_dc_writel(dc, 0x00010001,
 			DC_DISP_SHIFT_CLOCK_OPTIONS);
+#endif
+
 	tegra_dc_writel(dc, PIXEL_CLK_DIVIDER_PCD1 | SHIFT_CLK_DIVIDER(div),
 			DC_DISP_DISP_CLOCK_CONTROL);
 
@@ -1934,6 +2021,12 @@ static void tegra_dc_set_out(struct tegra_dc *dc, struct tegra_dc_out *out)
 	case TEGRA_DC_OUT_RGB:
 		dc->out_ops = &tegra_dc_rgb_ops;
 		break;
+
+#if defined (CONFIG_MACH_STAR)
+	case TEGRA_DC_OUT_CPU:
+		dc->out_ops = &tegra_dc_cpu_ops;
+		break;
+#endif
 
 	case TEGRA_DC_OUT_HDMI:
 		dc->out_ops = &tegra_dc_hdmi_ops;
@@ -2163,11 +2256,13 @@ static void tegra_dc_trigger_windows(struct tegra_dc *dc)
 
 	if (completed) {
 		if (!dirty) {
+#ifndef CONFIG_MACH_STAR			
 			/* With the last completed window, go ahead
 			   and enable the vblank interrupt for nvsd. */
 			val = tegra_dc_readl(dc, DC_CMD_INT_MASK);
 			val |= V_BLANK_INT;
 			tegra_dc_writel(dc, val, DC_CMD_INT_MASK);
+#endif
 		}
 
 		wake_up(&dc->wq);
@@ -2180,8 +2275,10 @@ static void tegra_dc_one_shot_irq(struct tegra_dc *dc, unsigned long status)
 		/* Sync up windows. */
 		tegra_dc_trigger_windows(dc);
 
+#ifndef CONFIG_MACH_STAR		
 		/* Schedule any additional bottom-half vblank actvities. */
 		schedule_work(&dc->vblank_work);
+#endif
 	}
 
 	if (status & FRAME_END_INT) {
@@ -2194,8 +2291,11 @@ static void tegra_dc_one_shot_irq(struct tegra_dc *dc, unsigned long status)
 static void tegra_dc_continuous_irq(struct tegra_dc *dc, unsigned long status)
 {
 	if (status & V_BLANK_INT) {
+
+#ifndef CONFIG_MACH_STAR		
 		/* Schedule any additional bottom-half vblank actvities. */
 		schedule_work(&dc->vblank_work);
+#endif
 
 		/* All windows updated. Mask subsequent V_BLANK interrupts */
 		if (!tegra_dc_windows_are_dirty(dc)) {
@@ -2683,6 +2783,15 @@ void tegra_dc_disable(struct tegra_dc *dc)
 		if (!dc->suspended)
 			_tegra_dc_disable(dc);
 	}
+
+#if defined (CONFIG_MACH_STAR)	
+	// dsi power off when early suspend
+	if (dc->out->type == TEGRA_DC_OUT_CPU &&
+		dc->out && dc->out->postsuspend) {
+		dc->out->postsuspend();
+		msleep(100);
+	}
+#endif
 
 #ifdef CONFIG_SWITCH
 	switch_set_state(&dc->modeset_switch, 0);

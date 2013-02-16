@@ -1,4 +1,24 @@
 # bcm4329
+ifeq ($(CONFIG_LGE_BCM432X_PATCH),y)
+DHDCFLAGS = -DLINUX -DBCMDRIVER -DBCMDONGLEHOST -DDHDTHREAD -DBCMWPA2         \
+	-DUNRELEASEDCHIP -Dlinux -DDHD_SDALIGN=64 -DMAX_HDR_READ=64           \
+	-DDHD_FIRSTREAD=64 -DDHD_GPL -DDHD_SCHED -DBDC -DTOE -DDHD_BCMEVENTS  \
+	-DSHOW_EVENTS -DBCMSDIO -DDHD_GPL -DBCMLXSDMMC -DBCMPLATFORM_BUS      \
+	-Wall -Wstrict-prototypes -Werror -DMMC_SDIO_ABORT     		      \
+	-DDHD_DEBUG_TRAP -DSOFTAP -DEMBEDDED_PLATFORM -DARP_OFFLOAD_SUPPORT   \
+	-DPKT_FILTER_SUPPORT -DSET_RANDOM_MAC_SOFTAP                          \
+	-DKEEP_ALIVE                                                          \
+	-DIOCTL_RESP_TIMEOUT=2000 					      \
+	-DSDIO_VENDOR_ID_BROADCOM=0x2d0 				      \
+	-DSDIO_DEVICE_ID_BROADCOM_4325=0x4c6				      \
+	-DSDIO_DEVICE_ID_BROADCOM_4329=0x4329 				      \
+	-DGET_CUSTOM_MAC_ENABLE 					      \
+	-DCONFIG_FIRST_SCAN						      \
+	-DROAM_NOT_USED							      \
+	-DDHD_DEBUG							      \
+	-Idrivers/net/wireless/bcm4329 -Idrivers/net/wireless/bcm4329/include 
+TARGET_USE_NEW_TOOLCHAIN = 1
+else
 DHDCFLAGS = -DLINUX -DBCMDRIVER -DBCMDONGLEHOST -DDHDTHREAD -DBCMWPA2         \
 	-DUNRELEASEDCHIP -Dlinux -DDHD_SDALIGN=64 -DMAX_HDR_READ=64           \
 	-DDHD_FIRSTREAD=64 -DDHD_GPL -DDHD_SCHED -DBDC -DTOE -DDHD_BCMEVENTS  \
@@ -8,6 +28,7 @@ DHDCFLAGS = -DLINUX -DBCMDRIVER -DBCMDONGLEHOST -DDHDTHREAD -DBCMWPA2         \
 	-DPKT_FILTER_SUPPORT -DSET_RANDOM_MAC_SOFTAP                          \
 	-DKEEP_ALIVE                                                          \
 	-Idrivers/net/wireless/bcm4329 -Idrivers/net/wireless/bcm4329/include
+endif
 
 ifeq ($(CONFIG_BCM4329_WIFI_CONTROL_FUNC),y)
 DHDCFLAGS += -DCONFIG_WIFI_CONTROL_FUNC
@@ -50,7 +71,12 @@ DHDOFILES = dhd_linux.o linux_osl.o bcmutils.o dhd_common.o dhd_custom_gpio.o \
 	dhd_linux_sched.o dhd_cdc.o bcmsdh_sdmmc.o bcmsdh.o bcmsdh_linux.o    \
 	bcmsdh_sdmmc_linux.o
 
+ifeq ($(CONFIG_LGE_BCM432X_PATCH),y)
+obj-$(CONFIG_BCM4329) += wireless.o
+wireless-objs += $(DHDOFILES)
+else
 obj-$(CONFIG_BCM4329) += bcm4329.o
 bcm4329-objs += $(DHDOFILES)
+endif
 EXTRA_CFLAGS = $(DHDCFLAGS)
 EXTRA_LDFLAGS += --strip-debug

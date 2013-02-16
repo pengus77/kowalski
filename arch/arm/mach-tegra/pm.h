@@ -234,5 +234,8 @@ extern unsigned long  debug_uart_port_base;
 extern struct clk *debug_uart_clk;
 void tegra_console_uart_suspend(void);
 void tegra_console_uart_resume(void);
+#if defined (CONFIG_MACH_STAR)
+int tegra_get_current_suspend_mode(void);
+#endif
 
 #endif /* _MACH_TEGRA_PM_H_ */

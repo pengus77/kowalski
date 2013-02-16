@@ -25,6 +25,10 @@
 #include <linux/moduleparam.h>
 #include <linux/seq_file.h>
 #include <linux/syscore_ops.h>
+#if defined(CONFIG_MACH_STAR)
+#include <linux/pm.h>
+#include <linux/platform_device.h>
+#endif
 
 #include <mach/iomap.h>
 
@@ -142,6 +146,11 @@ static inline void clear_pmc_sw_wake_status(void)
 #endif
 }
 
+#if defined (CONFIG_MACH_STAR)
+#include <mach/gpio.h>
+#include "gpio-names.h"
+#endif
+
 int tegra_pm_irq_set_wake(int irq, int enable)
 {
 	int wake = tegra_irq_to_wake(irq);
@@ -160,6 +169,11 @@ int tegra_pm_irq_set_wake(int irq, int enable)
 	} else if (wake < 0) {
 		return -EINVAL;
 	}
+
+#if defined (CONFIG_MACH_STAR)
+        if(wake > 30)
+                return 0;
+#endif
 
 	if (enable) {
 		tegra_lp0_wake_enb |= 1ull << wake;

@@ -39,5 +39,9 @@ obj-$(CONFIG_BACKLIGHT_ADP8860)	+= adp8860_bl.o
 obj-$(CONFIG_BACKLIGHT_ADP8870)	+= adp8870_bl.o
 obj-$(CONFIG_BACKLIGHT_88PM860X) += 88pm860x_bl.o
 obj-$(CONFIG_BACKLIGHT_PCF50633)	+= pcf50633-backlight.o
+ifeq ($(CONFIG_MACH_STAR), y)
+obj-$(CONFIG_BACKLIGHT_AAT2870) += aat2870.o
+else
 obj-$(CONFIG_BACKLIGHT_AAT2870) += aat2870_bl.o
+endif
 

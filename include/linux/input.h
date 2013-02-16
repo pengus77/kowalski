@@ -443,6 +443,10 @@ struct input_keymap_entry {
 
 #define KEY_MICMUTE		248	/* Mute / unmute the microphone */
 
+#if defined(CONFIG_MACH_STAR)
+#define KEY_HOOK        	248 
+#endif
+
 /* Code 255 is reserved for special needs of AT keyboard driver */
 
 #define BTN_MISC		0x100
@@ -677,6 +681,10 @@ struct input_keymap_entry {
 #define KEY_CAMERA_DOWN		0x218
 #define KEY_CAMERA_LEFT		0x219
 #define KEY_CAMERA_RIGHT	0x21a
+
+#if defined(CONFIG_MACH_STAR)
+#define KEY_TESTMODE_UNLOCK	0x2FD	/* PATTETN LOCK CLEAR */
+#endif
 
 #define BTN_TRIGGER_HAPPY		0x2c0
 #define BTN_TRIGGER_HAPPY1		0x2c0

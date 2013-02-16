@@ -52,4 +52,13 @@ enum StereoCameraMode {
 	_IOWR('i', 3, struct tegra_camera_clk_info)
 #define TEGRA_CAMERA_IOCTL_RESET		_IOWR('i', 4, uint)
 
+#if defined (CONFIG_MACH_STAR)
+#define CAMERA_USECASE_PREVIEW 0
+#define CAMERA_USECASE_CAMERA_CAPTURE 1
+#define CAMERA_USECASE_VIDEO_RECORD   2
+#define CAMERA_USECASE_PREVIEW_STOP   3
+
+#define TEGRA_CAMERA_IOCTL_CAMERA_MODE _IOWR('i', 5, int[4])
+#define TEGRA_CAMERA_IOCTL_CAMERA_USECASE _IOWR('i', 6, int[2])
+#endif
 #endif

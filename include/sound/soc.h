@@ -939,6 +939,10 @@ static inline void snd_soc_initialize_card_lists(struct snd_soc_card *card)
 int snd_soc_util_init(void);
 void snd_soc_util_exit(void);
 
+#if defined (CONFIG_MACH_STAR)
+void headset_enable();
+#endif
+
 #include <sound/soc-dai.h>
 
 #ifdef CONFIG_DEBUG_FS

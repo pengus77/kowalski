@@ -61,3 +61,9 @@ obj-$(CONFIG_SPI_TOPCLIFF_PCH)		+= spi-topcliff-pch.o
 obj-$(CONFIG_SPI_TXX9)			+= spi-txx9.o
 obj-$(CONFIG_SPI_XILINX)		+= spi-xilinx.o
 
+ifeq ($(CONFIG_MACH_STAR),y)
+obj-$(CONFIG_SPI_TEGRA)                 += ifx_n721_spi.o
+endif
+obj-$(CONFIG_SPI_MUX)                   += ts0710mux/
+obj-$(CONFIG_SPI_RINDRV)                += rindrv.o
+obj-$(CONFIG_CP_WATCHER)                += cpwatcher.o

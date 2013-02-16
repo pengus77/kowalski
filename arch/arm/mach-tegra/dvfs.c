@@ -32,6 +32,9 @@
 #include <linux/suspend.h>
 #include <linux/delay.h>
 #include <linux/reboot.h>
+#if defined (CONFIG_MACH_STAR)
+#include <linux/hardirq.h>
+#endif
 
 #include <mach/clk.h>
 
@@ -575,6 +578,20 @@ static struct notifier_block tegra_dvfs_nb = {
 	.notifier_call = tegra_dvfs_pm_notify,
 };
 
+#if defined (CONFIG_MACH_STAR)
+static int tegra_dvfs_panic_notify(struct notifier_block *this,
+		unsigned long event, void *ptr)
+{
+	if(likely(!(in_atomic() || irqs_disabled())))
+		tegra_dvfs_suspend();
+	return NOTIFY_DONE;
+}
+
+struct notifier_block tegra_dvfs_panic_nb = {
+	.notifier_call = tegra_dvfs_panic_notify,
+};
+#endif
+
 static int tegra_dvfs_reboot_notify(struct notifier_block *nb,
 				unsigned long event, void *data)
 {
@@ -709,6 +726,9 @@ int __init tegra_dvfs_late_init(void)
 
 	register_pm_notifier(&tegra_dvfs_nb);
 	register_reboot_notifier(&tegra_dvfs_reboot_nb);
+#if defined (CONFIG_MACH_STAR)
+	atomic_notifier_chain_register(&panic_notifier_list, &tegra_dvfs_panic_nb);
+#endif
 
 	return 0;
 }

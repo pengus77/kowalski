@@ -620,6 +620,10 @@ SND_SOC_DAPM_MIXER("IN2L PGA", WM8993_POWER_MANAGEMENT_2, 7, 0,
 SND_SOC_DAPM_MIXER("IN2R PGA", WM8993_POWER_MANAGEMENT_2, 5, 0,
 		   in2r_pga, ARRAY_SIZE(in2r_pga)),
 
+#if defined(CONFIG_MACH_STAR)
+/* Dummy widgets to represent differential paths */
+SND_SOC_DAPM_PGA("Direct Voice", SND_SOC_NOPM, 0, 0, NULL, 0),
+#endif
 SND_SOC_DAPM_MIXER("MIXINL", WM8993_POWER_MANAGEMENT_2, 9, 0,
 		   mixinl, ARRAY_SIZE(mixinl)),
 SND_SOC_DAPM_MIXER("MIXINR", WM8993_POWER_MANAGEMENT_2, 8, 0,
@@ -859,19 +863,41 @@ int wm_hubs_add_analogue_controls(struct snd_soc_codec *codec)
 	snd_soc_update_bits(codec, WM8993_SPEAKER_VOLUME_RIGHT,
 			    WM8993_SPKOUT_VU, WM8993_SPKOUT_VU);
 
+#if defined(CONFIG_MACH_STAR)
+	snd_soc_update_bits(codec, WM8993_LEFT_OUTPUT_VOLUME,
+			    WM8993_HPOUT1_VU,
+			    WM8993_HPOUT1_VU);
+	snd_soc_update_bits(codec, WM8993_RIGHT_OUTPUT_VOLUME,
+			    WM8993_HPOUT1_VU,
+			    WM8993_HPOUT1_VU);
+#else
 	snd_soc_update_bits(codec, WM8993_LEFT_OUTPUT_VOLUME,
 			    WM8993_HPOUT1_VU | WM8993_HPOUT1L_ZC,
 			    WM8993_HPOUT1_VU | WM8993_HPOUT1L_ZC);
 	snd_soc_update_bits(codec, WM8993_RIGHT_OUTPUT_VOLUME,
 			    WM8993_HPOUT1_VU | WM8993_HPOUT1R_ZC,
 			    WM8993_HPOUT1_VU | WM8993_HPOUT1R_ZC);
+#endif
 
 	snd_soc_update_bits(codec, WM8993_LEFT_OPGA_VOLUME,
+#if defined(CONFIG_MACH_STAR)
+			    WM8993_MIXOUT_VU,
+			    WM8993_MIXOUT_VU);
+#else
 			    WM8993_MIXOUTL_ZC | WM8993_MIXOUT_VU,
 			    WM8993_MIXOUTL_ZC | WM8993_MIXOUT_VU);
+#endif
+
+
+#if defined(CONFIG_MACH_STAR)
+	snd_soc_update_bits(codec, WM8993_RIGHT_OPGA_VOLUME,
+			    WM8993_MIXOUT_VU,
+			    WM8993_MIXOUT_VU);
+#else
 	snd_soc_update_bits(codec, WM8993_RIGHT_OPGA_VOLUME,
 			    WM8993_MIXOUTR_ZC | WM8993_MIXOUT_VU,
 			    WM8993_MIXOUTR_ZC | WM8993_MIXOUT_VU);
+#endif
 
 	snd_soc_add_controls(codec, analogue_snd_controls,
 			     ARRAY_SIZE(analogue_snd_controls));

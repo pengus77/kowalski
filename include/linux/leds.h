@@ -66,6 +66,10 @@ struct led_classdev {
 	struct timer_list	 blink_timer;
 	int			 blink_brightness;
 
+#if defined(CONFIG_MACH_STAR)
+	int br_maintain_trigger;
+#endif
+
 #ifdef CONFIG_LEDS_TRIGGERS
 	/* Protects the trigger data below */
 	struct rw_semaphore	 trigger_lock;

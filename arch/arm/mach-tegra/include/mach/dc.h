@@ -218,6 +218,9 @@ struct tegra_dc_mode {
 
 enum {
 	TEGRA_DC_OUT_RGB,
+#if defined (CONFIG_MACH_STAR)
+        TEGRA_DC_OUT_CPU,
+#endif
 	TEGRA_DC_OUT_HDMI,
 	TEGRA_DC_OUT_DSI,
 };
@@ -362,6 +365,9 @@ struct tegra_dc_out {
 	int	(*enable)(void);
 	int	(*postpoweron)(void);
 	int	(*disable)(void);
+#if defined (CONFIG_MACH_STAR)
+	int     (*poweron)(void);
+#endif	
 
 	int	(*hotplug_init)(void);
 	int	(*postsuspend)(void);

@@ -125,10 +125,17 @@ enum ext_slave_config_irq_type {
  * @data pointer to the data to confgure or get
  */
 struct ext_slave_config {
+#if defined (CONFIG_MACH_STAR)
+	int key;
+	int len;
+	int apply;
+	void *data;
+#else
 	__u8 key;
 	__u16 len;
 	__u8 apply;
 	void *data;
+#endif
 };
 
 enum ext_slave_type {
@@ -288,10 +295,16 @@ struct ext_slave_descr {
 	__u8 type;
 	__u8 id;
 	__u8 read_reg;
+#ifdef CONFIG_MACH_STAR
+	unsigned int read_len;
+#else
 	__u8 read_len;
+#endif
 	__u8 endian;
 	struct fix_pnt_range range;
+#ifndef CONFIG_MACH_STAR
 	struct ext_slave_read_trigger *trigger;
+#endif
 };
 
 /**
@@ -312,6 +325,59 @@ struct mpu_platform_data {
 	__s8 orientation[GYRO_NUM_AXES * GYRO_NUM_AXES];
 };
 
+#if defined (CONFIG_MACH_STAR)
+/* IOCTL commands for /dev/mpu */
+#define MPU_SET_MPU_CONFIG          (0x00)
+#define MPU_SET_INT_CONFIG          (0x01)
+#define MPU_SET_EXT_SYNC            (0x02)
+#define MPU_SET_FULL_SCALE          (0x03)
+#define MPU_SET_LPF                 (0x04)
+#define MPU_SET_CLK_SRC             (0x05)
+#define MPU_SET_DIVIDER             (0x06)
+#define MPU_SET_LEVEL_SHIFTER       (0x07)
+#define MPU_SET_DMP_ENABLE          (0x08)
+#define MPU_SET_FIFO_ENABLE         (0x09)
+#define MPU_SET_DMP_CFG1            (0x0a)
+#define MPU_SET_DMP_CFG2            (0x0b)
+#define MPU_SET_OFFSET_TC           (0x0c)
+#define MPU_SET_RAM                 (0x0d)
+
+#define MPU_SET_PLATFORM_DATA       (0x0e)
+
+#define MPU_GET_MPU_CONFIG          (0x80)
+#define MPU_GET_INT_CONFIG          (0x81)
+#define MPU_GET_EXT_SYNC            (0x82)
+#define MPU_GET_FULL_SCALE          (0x83)
+#define MPU_GET_LPF                 (0x84)
+#define MPU_GET_CLK_SRC             (0x85)
+#define MPU_GET_DIVIDER             (0x86)
+#define MPU_GET_LEVEL_SHIFTER       (0x87)
+#define MPU_GET_DMP_ENABLE          (0x88)
+#define MPU_GET_FIFO_ENABLE         (0x89)
+#define MPU_GET_DMP_CFG1            (0x8a)
+#define MPU_GET_DMP_CFG2            (0x8b)
+#define MPU_GET_OFFSET_TC           (0x8c)
+#define MPU_GET_RAM                 (0x8d)
+
+#define MPU_READ_REGISTER           (0x40)
+#define MPU_WRITE_REGISTER          (0x41)
+#define MPU_READ_MEMORY             (0x42)
+#define MPU_WRITE_MEMORY            (0x43)
+
+#define MPU_SUSPEND                 (0x44)
+#define MPU_RESUME                  (0x45)
+#define MPU_READ_COMPASS            (0x46)
+#define MPU_READ_ACCEL              (0x47)
+#define MPU_READ_PRESSURE           (0x48)
+
+#define MPU_CONFIG_ACCEL            (0x20)
+#define MPU_CONFIG_COMPASS          (0x21)
+#define MPU_CONFIG_PRESSURE         (0x22)
+
+#define MPU_GET_CONFIG_ACCEL        (0x28)
+#define MPU_GET_CONFIG_COMPASS      (0x29)
+#define MPU_GET_CONFIG_PRESSURE     (0x2a)
+#else
 #define MPU_IOCTL (0x81) /* Magic number for MPU Iocts */
 /* IOCTL commands for /dev/mpu */
 
@@ -362,6 +428,7 @@ struct mpu_platform_data {
 #define MPU_SET_IGNORE_SYSTEM_SUSPEND	_IOW(MPU_IOCTL, 0x41, __u8)
 #define MPU_GET_MLDL_STATUS		_IOR(MPU_IOCTL, 0x42, __u8)
 #define MPU_GET_I2C_SLAVES_ENABLED	_IOR(MPU_IOCTL, 0x43, __u8)
+#endif
 
 
 #endif				/* __MPU_H_ */

@@ -27,6 +27,13 @@
 #include <linux/mfd/wm8994/core.h>
 #include <linux/mfd/wm8994/pdata.h>
 #include <linux/mfd/wm8994/registers.h>
+#if defined (CONFIG_MACH_STAR)
+#include <linux/gpio.h> 
+
+#define GPIO_WM8994_LDO_EN     83 /* TEGRA_GPIO_PK3 */
+
+extern bool in_call_state();
+#endif
 
 static int wm8994_read(struct wm8994 *wm8994, unsigned short reg,
 		       int bytes, void *dest)
@@ -168,6 +175,7 @@ static struct mfd_cell wm8994_devs[] = {
  * management.
  */
 static const char *wm8994_main_supplies[] = {
+#ifndef CONFIG_MACH_STAR
 	"DBVDD",
 	"DCVDD",
 	"AVDD1",
@@ -175,6 +183,7 @@ static const char *wm8994_main_supplies[] = {
 	"CPVDD",
 	"SPKVDD1",
 	"SPKVDD2",
+#endif
 };
 
 static const char *wm8958_main_supplies[] = {
@@ -195,8 +204,14 @@ static int wm8994_suspend(struct device *dev)
 	struct wm8994 *wm8994 = dev_get_drvdata(dev);
 	int ret;
 
+#if defined(CONFIG_MACH_STAR)
+	if(in_call_state())
+		return 0;
+#endif
+
 	/* Don't actually go through with the suspend if the CODEC is
 	 * still active (eg, for audio passthrough from CP. */
+#ifndef CONFIG_MACH_STAR
 	ret = wm8994_reg_read(wm8994, WM8994_POWER_MANAGEMENT_1);
 	if (ret < 0) {
 		dev_err(dev, "Failed to read power status: %d\n", ret);
@@ -204,6 +219,7 @@ static int wm8994_suspend(struct device *dev)
 		dev_dbg(dev, "CODEC still active, ignoring suspend\n");
 		return 0;
 	}
+#endif
 
 	/* GPIO configuration state is saved here since we may be configuring
 	 * the GPIO alternate functions even if we're not using the gpiolib
@@ -241,6 +257,11 @@ static int wm8994_resume(struct device *dev)
 {
 	struct wm8994 *wm8994 = dev_get_drvdata(dev);
 	int ret, i;
+
+#if defined(CONFIG_MACH_STAR)
+	if(in_call_state())
+		return 0;
+#endif
 
 	/* We may have lied to the PM core about suspending */
 	if (!wm8994->suspended)
@@ -317,6 +338,26 @@ static int wm8994_device_init(struct wm8994 *wm8994, int irq)
 	int ret, i;
 
 	dev_set_drvdata(wm8994->dev, wm8994);
+
+#if defined (CONFIG_MACH_STAR)
+	ret = gpio_request(GPIO_WM8994_LDO_EN, "wm8994_ldo");
+	if (ret < 0) {
+		printk(KERN_ERR "Can't request gpio%d for wm8994_ldo: %d\n",
+				GPIO_WM8994_LDO_EN, ret);
+		goto err_regmap;
+	}
+	tegra_gpio_enable(GPIO_WM8994_LDO_EN);
+
+	ret = gpio_direction_output(GPIO_WM8994_LDO_EN, 1);
+	if (ret < 0) {
+		printk(KERN_ERR "Can't set gpio%d direction to output: %d\n",
+				GPIO_WM8994_LDO_EN, ret);
+		goto err_regmap;
+	}
+
+	gpio_set_value(GPIO_WM8994_LDO_EN, 1);
+	msleep(10);
+#endif
 
 	/* Add the on-chip regulators first for bootstrapping */
 	ret = mfd_add_devices(wm8994->dev, -1,
@@ -468,8 +509,10 @@ static int wm8994_device_init(struct wm8994 *wm8994, int irq)
 		goto err_irq;
 	}
 
+#ifndef CONFIG_MACH_STAR	
 	pm_runtime_enable(wm8994->dev);
 	pm_runtime_resume(wm8994->dev);
+#endif
 
 	return 0;
 
@@ -533,6 +576,10 @@ static int wm8994_i2c_remove(struct i2c_client *i2c)
 {
 	struct wm8994 *wm8994 = i2c_get_clientdata(i2c);
 
+#if defined (CONFIG_ARCH_STAR)
+	tegra_gpio_disable(GPIO_WM8994_LDO_EN);
+	gpio_free(GPIO_WM8994_LDO_EN);
+#endif /* defined(CONFIG_ARCH_TEGRA) */
 	wm8994_device_exit(wm8994);
 
 	return 0;

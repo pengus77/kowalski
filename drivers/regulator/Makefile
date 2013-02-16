@@ -18,7 +18,11 @@ obj-$(CONFIG_REGULATOR_TWL4030) += twl-regulator.o
 obj-$(CONFIG_REGULATOR_MAX8649)	+= max8649.o
 obj-$(CONFIG_REGULATOR_MAX8660) += max8660.o
 obj-$(CONFIG_REGULATOR_MAX8925) += max8925-regulator.o
+ifeq ($(CONFIG_MACH_STAR), y)
+obj-$(CONFIG_REGULATOR_MAX8952) += max8952r.o
+else
 obj-$(CONFIG_REGULATOR_MAX8952) += max8952.o
+endif
 obj-$(CONFIG_REGULATOR_MAX8997) += max8997.o
 obj-$(CONFIG_REGULATOR_MAX8998) += max8998.o
 obj-$(CONFIG_REGULATOR_MAX8907C) += max8907c-regulator.o
@@ -55,4 +59,5 @@ obj-$(CONFIG_REGULATOR_TPS62360) += tps62360-regulator.o
 obj-$(CONFIG_REGULATOR_AAT2870) += aat2870-regulator.o
 obj-$(CONFIG_REGULATOR_GPIO_SWITCH)	+= gpio-switch-regulator.o
 obj-$(CONFIG_REGULATOR_FAN53555) += fan53555-regulator.o
+obj-$(CONFIG_REGULATOR_LP8720)  += lp8720.o
 ccflags-$(CONFIG_REGULATOR_DEBUG) += -DDEBUG

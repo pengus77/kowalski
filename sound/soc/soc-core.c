@@ -60,12 +60,21 @@ static LIST_HEAD(codec_list);
 
 int soc_new_pcm(struct snd_soc_pcm_runtime *rtd, int num);
 
+#if defined(CONFIG_MACH_STAR)
+extern bool in_call_state();  
+#endif
 /*
  * This is a timeout to do a DAPM powerdown after a stream is closed().
  * It can be used to eliminate pops between different playback streams, e.g.
  * between two audio tracks.
  */
+
+#if defined(CONFIG_MACH_STAR)
+static int pmdown_time = 100;
+#else
 static int pmdown_time = 5000;
+#endif
+
 module_param(pmdown_time, int, 0);
 MODULE_PARM_DESC(pmdown_time, "DAPM stream powerdown time (msecs)");
 
@@ -493,6 +502,10 @@ int snd_soc_suspend(struct device *dev)
 	struct snd_soc_codec *codec;
 	int i;
 
+#if defined(CONFIG_MACH_STAR)
+	if(in_call_state())
+	    return 0;
+#endif
 	/* If the initialization of this soc device failed, there is no codec
 	 * associated with it. Just bail out in this case.
 	 */
@@ -713,6 +726,10 @@ int snd_soc_resume(struct device *dev)
 	struct snd_soc_card *card = dev_get_drvdata(dev);
 	int i, ac97_control = 0;
 
+#if defined(CONFIG_MACH_STAR)
+	if(in_call_state())
+	    return 0;
+#endif
 	/* AC97 devices might have other drivers hanging off them so
 	 * need to resume immediately.  Other drivers don't have that
 	 * problem and may take a substantial amount of time to resume
@@ -731,6 +748,9 @@ int snd_soc_resume(struct device *dev)
 			dev_err(dev, "resume work item may be lost\n");
 	}
 
+#if defined (CONFIG_MACH_STAR)
+	headset_enable();
+#endif	
 	return 0;
 }
 EXPORT_SYMBOL_GPL(snd_soc_resume);

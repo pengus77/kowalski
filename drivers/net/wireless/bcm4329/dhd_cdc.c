@@ -533,3 +533,54 @@ dhd_prot_stop(dhd_pub_t *dhd)
 {
 	/* Nothing to do for CDC */
 }
+
+#if defined(CONFIG_LGE_BCM432X_PATCH) && defined(CONFIG_BRCM_USE_DEEPSLEEP)
+extern dhd_pub_t * get_dhd_pub_from_dev(struct net_device *dev);
+int dhd_deep_sleep(struct net_device *dev, int flag)
+{
+	dhd_pub_t *dhd_pub = get_dhd_pub_from_dev(dev);
+    char iovbuf[20] = {0};
+    uint powervar   = 0;
+
+    DHD_TRACE(("%s: Enter Flag -> %d \n", __FUNCTION__, flag));
+	if(dhd_pub == NULL)
+		return 0;
+
+    switch(flag) {
+	case 1: /* DEEPSLEEP ON*/
+		   printk(KERN_INFO "===== [WiFi] DEEP SLEEP ON =====\n");
+	
+		   /* Disable MPC */	
+		   powervar = 0;
+		   bcm_mkiovar("mpc", (char *)&powervar, 4, iovbuf, sizeof(iovbuf));
+		   dhdcdc_set_ioctl(dhd_pub, 0, WLC_SET_VAR, iovbuf, sizeof(iovbuf));
+
+		   /* Enable Deep Sleep */
+		   powervar = 1;
+		   bcm_mkiovar("deepsleep", (char *)&powervar, 4, iovbuf, sizeof(iovbuf));
+		   dhdcdc_set_ioctl(dhd_pub, 0, WLC_SET_VAR, iovbuf, sizeof(iovbuf));
+		   break;
+
+	case 0: /*DEEPSLEEP OFF*/
+		   printk(KERN_INFO "===== [WiFi] DEEP SLEEP OFF =====\n");
+
+		   /* Disable Deep Sleep */	
+		   powervar = 0;
+		   bcm_mkiovar("deepsleep", (char *)&powervar, 4, iovbuf, sizeof(iovbuf));
+		   dhdcdc_set_ioctl(dhd_pub, 0, WLC_SET_VAR, iovbuf, sizeof(iovbuf));
+
+		   /* Enable MPC */
+		   powervar = 1;
+		   bcm_mkiovar("mpc", (char *)&powervar, 4, iovbuf, sizeof(iovbuf));
+		   dhdcdc_set_ioctl(dhd_pub, 0, WLC_SET_VAR, iovbuf, sizeof(iovbuf));
+		   break;
+
+	default: 
+		   printk(KERN_ERR "[%s] Invalid Input Flag (%d)",__FUNCTION__, flag);
+
+    }
+
+    return 0;
+
+}
+#endif /* CONFIG_LGE_BCM432X_PATCH && CONFIG_BRCM_USE_DEEPSLEEP */

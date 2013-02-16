@@ -38,6 +38,9 @@
 #define USE_TEGRA_DIAG_REG_SAVE	0
 #endif
 
+#if defined (CONFIG_MACH_STAR)
+#define TEGRA_POWER_LP1_AUDIO           (1 << 25) /* do not turn off pll-p in LP1 */
+#endif
 #define TEGRA_POWER_SDRAM_SELFREFRESH	(1 << 26) /* SDRAM is in self-refresh */
 #define TEGRA_POWER_HOTPLUG_SHUTDOWN	(1 << 27) /* Hotplug shutdown */
 #define TEGRA_POWER_CLUSTER_G		(1 << 28) /* G CPU */
