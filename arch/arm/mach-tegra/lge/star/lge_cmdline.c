@@ -32,8 +32,6 @@ static struct cmdline_parameter cmdline_parameters[] __initdata = {
         {"mem", "512M@0M", 1},
         {"vmalloc", "128M", 1},
         {"androidboot.mode", "normal", 1},
-        {"lp0_vec", "8192@0x1dd09000", 1},
-        {"tegra_fbmem", "3073920@0x1fd11000", 1},
         {"androidboot.hardware", "star", 1},
 };
 
