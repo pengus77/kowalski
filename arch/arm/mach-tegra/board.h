@@ -99,6 +99,9 @@ int arb_lost_recovery(int scl_gpio, int sda_gpio);
 
 extern unsigned long tegra_bootloader_fb_start;
 extern unsigned long tegra_bootloader_fb_size;
+#if defined (CONFIG_MACH_STAR)
+extern u32 tegra_bootloader_fb_colorformat;
+#endif
 extern unsigned long tegra_fb_start;
 extern unsigned long tegra_fb_size;
 extern unsigned long tegra_fb2_start;

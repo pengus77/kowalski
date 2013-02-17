@@ -220,6 +220,7 @@ static int __init get_cfg_from_tags(void)
 		/* Got the bootloader framebuffer address and size. Store it */
 		tegra_bootloader_fb_start = NvBootArgs.MemHandleArgs[NvBootArgs.FramebufferArgs.MemHandleKey - ATAG_NVIDIA_PRESERVED_MEM_0].Address;
 		tegra_bootloader_fb_size  = NvBootArgs.MemHandleArgs[NvBootArgs.FramebufferArgs.MemHandleKey - ATAG_NVIDIA_PRESERVED_MEM_0].Size;
+		tegra_bootloader_fb_colorformat = NvBootArgs.FramebufferArgs.ColorFormat;
 
 		pr_info("Nvidia ATAG: framebuffer: %lu @ 0x%08lx\n",tegra_bootloader_fb_size,tegra_bootloader_fb_start);
 	}
