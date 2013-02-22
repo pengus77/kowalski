@@ -394,12 +394,7 @@ uint dhd_pkt_filter_init = 0;
 module_param(dhd_pkt_filter_init, uint, 0);
 
 /* Pkt filter mode control */
-#if defined(CONFIG_LGE_BCM432X_PATCH)
-/* Pkt filter deny mode */
-uint dhd_master_mode = FALSE;
-#else
 uint dhd_master_mode = TRUE;
-#endif
 module_param(dhd_master_mode, uint, 1);
 
 /* Watchdog thread priority, -1 to use kernel timer */
@@ -581,19 +576,16 @@ extern uint wl_dtim_val;
 #endif
 static int dhd_set_suspend(int value, dhd_pub_t *dhd)
 {
-#if defined(CONFIG_LGE_BCM432X_PATCH)
 	uint roamvar = 1;
-#else
 	int power_mode = PM_MAX;
 	/* wl_pkt_filter_enable_t	enable_parm; */
 	char iovbuf[32];
-	int bcn_li_dtim = 3;
-#endif
-
 #if defined(CONFIG_BRCM_LGE_WL_ARPOFFLOAD)
-	char iovbuf[32];
+	int bcn_li_dtim = 3;
+#else
 	int bcn_li_dtim = 0;
 #endif
+
 #ifdef CUSTOMER_HW2
 	uint roamvar = 1;
 #endif /* CUSTOMER_HW2 */
@@ -607,10 +599,8 @@ static int dhd_set_suspend(int value, dhd_pub_t *dhd)
 			/* Kernel suspended */
 			DHD_TRACE(("%s: force extra Suspend setting \n", __FUNCTION__));
 
-#ifndef CONFIG_LGE_BCM432X_PATCH
 			dhdcdc_set_ioctl(dhd, 0, WLC_SET_PM,
 				(char *)&power_mode, sizeof(power_mode));
-#endif
 
 			/* Enable packet filter, only allow unicast packet to send up */
 			dhd_set_packet_filter(1, dhd);
@@ -619,16 +609,13 @@ static int dhd_set_suspend(int value, dhd_pub_t *dhd)
 			 *  for better power saving.
 			 *  Note that side effect is chance to miss BC/MC packet
 			*/
-
-#ifndef CONFIG_LGE_BCM432X_PATCH
 			bcn_li_dtim = dhd_get_dtim_skip(dhd);
 			bcm_mkiovar("bcn_li_dtim", (char *)&bcn_li_dtim,
 				4, iovbuf, sizeof(iovbuf));
 			dhdcdc_set_ioctl(dhd, 0, WLC_SET_VAR, iovbuf, sizeof(iovbuf));
-#endif
 #if defined(CONFIG_BRCM_LGE_WL_ARPOFFLOAD)
 			bcn_li_dtim = wl_dtim_val;
-			printk("%s:%d wl_dtim_val = %d\n",__func__,__LINE__,wl_dtim_val);
+			DHD_TRACE(("%s:%d wl_dtim_val = %d\n", __FUNCTION__, __LINE__, wl_dtim_val));
 			if(bcn_li_dtim > 0){
 				bcm_mkiovar("bcn_li_dtim", (char *)&bcn_li_dtim,
 						4, iovbuf, sizeof(iovbuf));
@@ -652,22 +639,18 @@ static int dhd_set_suspend(int value, dhd_pub_t *dhd)
 			/* Kernel resumed  */
 			DHD_TRACE(("%s: Remove extra suspend setting \n", __FUNCTION__));
 
-#ifndef CONFIG_LGE_BCM432X_PATCH
 			power_mode = PM_FAST;
 			dhdcdc_set_ioctl(dhd, 0, WLC_SET_PM, (char *)&power_mode,
 				sizeof(power_mode));
-#endif
 
 			/* disable pkt filter */
 			dhd_set_packet_filter(0, dhd);
 
-#ifndef CONFIG_LGE_BCM432X_PATCH				
 			/* restore pre-suspend setting for dtim_skip */
 			bcm_mkiovar("bcn_li_dtim", (char *)&dhd->dtim_skip,
 				4, iovbuf, sizeof(iovbuf));
 
 			dhdcdc_set_ioctl(dhd, 0, WLC_SET_VAR, iovbuf, sizeof(iovbuf));
-#endif
 #if defined(CONFIG_BRCM_LGE_WL_ARPOFFLOAD)
 			bcn_li_dtim = 0;
 			bcm_mkiovar("bcn_li_dtim", (char *)&bcn_li_dtim,
@@ -1598,7 +1581,6 @@ reset:
 #if defined(CONFIG_LGE_BCM432X_PATCH)	//htclk fail patch
 			if(ht_err_cnt > 10)
 			{
-				printk("%s:%d\n",__func__,__LINE__);
 				reset_flag = TRUE;
 				break;
 			}
@@ -1611,8 +1593,6 @@ reset:
 #if defined(CONFIG_LGE_BCM432X_PATCH)	//htclk fail patch
 	if(reset_flag == TRUE)
 	{
-		printk("%s:%d : htclk_fail_reset call\n",__func__,__LINE__);
-		
 		htclk_fail_reset((void*)dhd);
 		reset_flag = FALSE;
 
@@ -2045,12 +2025,10 @@ dhd_open(struct net_device *net)
 	if (ifidx == DHD_BAD_IF)
 		return -1;
 
-#ifndef CONFIG_LGE_BCM432X_PATCH
 	if ((dhd->iflist[ifidx]) && (dhd->iflist[ifidx]->state == WLC_E_IF_DEL)) {
 		DHD_ERROR(("%s: Error: called when IF already deleted\n", __FUNCTION__));
 		return -1;
 	}
-#endif
 
 	if (ifidx == 0) { /* do it only for primary eth0 */
 
@@ -2427,9 +2405,7 @@ dhd_bus_start(dhd_pub_t *dhdp)
 #endif /* PNO_SUPPORT */
 
 /* enable dongle roaming event */
-#ifndef CONFIG_LGE_BCM432X_PATCH
 	setbit(dhdp->eventmask, WLC_E_ROAM);
-#endif
 
 #if defined(CONFIG_LGE_BCM432X_PATCH)
 	dhdp->pktfilter_count = 1;
@@ -3502,7 +3478,7 @@ void htclk_fail_reset(void *bus)
 {
 	dhd_info_t *dhd = (dhd_info_t *)bus;
 
-	printk("Enter %s:%d\n",__func__,__LINE__);
+	DHD_TRACE(("Enter %s:%d\n",__func__,__LINE__));
 	/* Turning off watchdog */
 	dhd_os_wd_timer(&dhd->pub, 0);
 

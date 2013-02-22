@@ -685,30 +685,30 @@ int wl_iw_set_dtim_val(struct net_device *dev)
 		bi = (wl_bss_info_t*)(buf + 4);
 		if (dtoh32(bi->version) == WL_BSS_INFO_VERSION && (!dnla_dtim_val) )
 		{
-			printk("[%s] beacon_period[%d], dtim_period[%d]\n",__FUNCTION__,bi->beacon_period,bi->dtim_period);
+			WL_TRACE(("[%s] beacon_period[%d], dtim_period[%d]\n",__FUNCTION__,bi->beacon_period,bi->dtim_period));
 			cal_dtim = (bi->beacon_period) * (bi->dtim_period);
 			if( cal_dtim <= 100)
 			{
 				wl_dtim_val = 3;
-				printk("[%s]wl dtim val set : %d",__FUNCTION__, wl_dtim_val);
+				WL_TRACE(("[%s] wl dtim val set : %d", __FUNCTION__, wl_dtim_val));
 			}
 			else if( (100 < cal_dtim) && (cal_dtim <= 200))
 			{
 				wl_dtim_val = 2;
-				printk("[%s]wl dtim val set : %d",__FUNCTION__, wl_dtim_val);
+				WL_TRACE(("[%s] wl dtim val set : %d", __FUNCTION__, wl_dtim_val));
 			}
 			else
 			{
 				wl_dtim_val = 1;
-				printk("[%s]wl dtim val set : %d",__FUNCTION__, wl_dtim_val);
+				WL_TRACE(("[%s] wl dtim val set : %d", __FUNCTION__, wl_dtim_val));
 			}
 		}
 		else
-			printk("Sorry, your driver has bss_info_version %d "
+			WL_ERROR(("Sorry, your driver has bss_info_version %d "
 					"but this program supports only version %d.\n",
-				bi->version, WL_BSS_INFO_VERSION);
+				bi->version, WL_BSS_INFO_VERSION));
 	} else {
-		printk("Not associated. Last associated with ");
+		WL_ERROR(("Not associated. Last associated with "));
 	}
 
 	return ret;
@@ -1766,7 +1766,7 @@ wl_iw_control_wl_off(
 
 #if defined(CONFIG_BRCM_USE_DEEPSLEEP)
 		/* Use Deep Sleep instead of WL Reset*/
-		dhd_deep_sleep(wl_ctl->dev, TRUE);
+		dhd_deep_sleep(dev, TRUE);
 #elif defined(CONFIG_BRCM_USE_GPIO_RESET)
 		dhd_dev_reset(dev, 1);
 #endif /* CONFIG_BRCM_USE_DEEPSLEEP, CONFIG_BRCM_USE_GPIO_RESET */
@@ -7632,7 +7632,7 @@ static int wl_iw_set_priv(
 	wl_iw_t *iw;
 
 	if (!dev) {
-		printk("%s: dev is null\n", __FUNCTION__);
+		printk(KERN_ERR "%s: dev is null\n", __FUNCTION__);
 		return -EFAULT;
 	}
 	iw = *(wl_iw_t **)netdev_priv(dev);

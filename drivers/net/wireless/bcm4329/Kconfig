@@ -42,6 +42,13 @@ config BCM4329_GPIO_WL_HOSTWAKEUP
 	default 107
 	depends on BCM4329
 
+config BRCM_USE_DEEPSLEEP
+        bool "Use deepsleep instead of dhd_dev_reset"
+        default n
+        depends on BCM4329
+        ---help---
+           Use deepsleep instead of dhd_dev_reset and controlling GPIO when driver start or stop.
+
 config BRCM_USE_SOFTAP
 	bool "Use SoftAP"
 	default n
