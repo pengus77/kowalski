@@ -571,21 +571,12 @@ static void dhd_set_packet_filter(int value, dhd_pub_t *dhd)
 
 
 #if defined(CONFIG_HAS_EARLYSUSPEND)
-#if defined(CONFIG_BRCM_LGE_WL_ARPOFFLOAD)	/*Setting dtim.	20110120*/
-extern uint wl_dtim_val;
-#endif
 static int dhd_set_suspend(int value, dhd_pub_t *dhd)
 {
-	uint roamvar = 1;
 	int power_mode = PM_MAX;
 	/* wl_pkt_filter_enable_t	enable_parm; */
 	char iovbuf[32];
-#if defined(CONFIG_BRCM_LGE_WL_ARPOFFLOAD)
 	int bcn_li_dtim = 3;
-#else
-	int bcn_li_dtim = 0;
-#endif
-
 #ifdef CUSTOMER_HW2
 	uint roamvar = 1;
 #endif /* CUSTOMER_HW2 */
@@ -613,21 +604,6 @@ static int dhd_set_suspend(int value, dhd_pub_t *dhd)
 			bcm_mkiovar("bcn_li_dtim", (char *)&bcn_li_dtim,
 				4, iovbuf, sizeof(iovbuf));
 			dhdcdc_set_ioctl(dhd, 0, WLC_SET_VAR, iovbuf, sizeof(iovbuf));
-#if defined(CONFIG_BRCM_LGE_WL_ARPOFFLOAD)
-			bcn_li_dtim = wl_dtim_val;
-			DHD_TRACE(("%s:%d wl_dtim_val = %d\n", __FUNCTION__, __LINE__, wl_dtim_val));
-			if(bcn_li_dtim > 0){
-				bcm_mkiovar("bcn_li_dtim", (char *)&bcn_li_dtim,
-						4, iovbuf, sizeof(iovbuf));
-				dhdcdc_set_ioctl(dhd, 0, WLC_SET_VAR, iovbuf, sizeof(iovbuf));
-			}
-#endif
-#if defined(CONFIG_LGE_BCM432X_PATCH)
-			/* Disable build-in roaming during suspend */
-			bcm_mkiovar("roam_off", (char *)&roamvar, 4, \
-					iovbuf, sizeof(iovbuf));
-			dhdcdc_set_ioctl(dhd, 0, WLC_SET_VAR, iovbuf, sizeof(iovbuf));
-#endif
 #ifdef CUSTOMER_HW2
 			/* Disable build-in roaming during suspend */
 			bcm_mkiovar("roam_off", (char *)&roamvar, 4, iovbuf, sizeof(iovbuf));
@@ -651,19 +627,6 @@ static int dhd_set_suspend(int value, dhd_pub_t *dhd)
 				4, iovbuf, sizeof(iovbuf));
 
 			dhdcdc_set_ioctl(dhd, 0, WLC_SET_VAR, iovbuf, sizeof(iovbuf));
-#if defined(CONFIG_BRCM_LGE_WL_ARPOFFLOAD)
-			bcn_li_dtim = 0;
-			bcm_mkiovar("bcn_li_dtim", (char *)&bcn_li_dtim,
-					4, iovbuf, sizeof(iovbuf));
-
-			dhdcdc_set_ioctl(dhd, 0, WLC_SET_VAR, iovbuf, sizeof(iovbuf));
-#endif
-#if defined(CONFIG_LGE_BCM432X_PATCH)
-			roamvar = 0;
-			bcm_mkiovar("roam_off", (char *)&roamvar, 4, iovbuf, \
-					sizeof(iovbuf));
-			dhdcdc_set_ioctl(dhd, 0, WLC_SET_VAR, iovbuf, sizeof(iovbuf));
-#endif
 #ifdef CUSTOMER_HW2
 			roamvar = dhd_roam;
 			bcm_mkiovar("roam_off", (char *)&roamvar, 4, iovbuf, sizeof(iovbuf));
@@ -1534,20 +1497,11 @@ dhd_watchdog(ulong data)
 	dhd_os_wake_unlock(&dhd->pub);
 }
 
-#if defined(CONFIG_LGE_BCM432X_PATCH)	//htclk fail patch
-extern int ht_err_cnt;
-void htclk_fail_reset(void *bus);
-#endif
 static int
 dhd_dpc_thread(void *data)
 {
 	dhd_info_t *dhd = (dhd_info_t *)data;
 
-#if defined(CONFIG_LGE_BCM432X_PATCH)	//htclk fail patch
-	int reset_flag = FALSE;
-
-reset:
-#endif
 	/* This thread doesn't need any user-level access,
 	 * so get rid of all our resources
 	 */
@@ -1578,29 +1532,11 @@ reset:
 					dhd_bus_stop(dhd->pub.bus, TRUE);
 				dhd_os_wake_unlock(&dhd->pub);
 			}
-#if defined(CONFIG_LGE_BCM432X_PATCH)	//htclk fail patch
-			if(ht_err_cnt > 10)
-			{
-				reset_flag = TRUE;
-				break;
-			}
-#endif
 		}
 		else
 			break;
 	}
 
-#if defined(CONFIG_LGE_BCM432X_PATCH)	//htclk fail patch
-	if(reset_flag == TRUE)
-	{
-		htclk_fail_reset((void*)dhd);
-		reset_flag = FALSE;
-
-		ht_err_cnt = 0;
-		mdelay(500);
-		goto reset;
-	}
-#endif
 	complete_and_exit(&dhd->dpc_exited, 0);
 }
 
@@ -2125,19 +2061,6 @@ dhd_del_if(dhd_info_t *dhd, int ifidx)
 	up(&dhd->sysioc_sem);
 }
 
-#if defined(CONFIG_LGE_BCM432X_PATCH)
-struct net_device *g_net_dev;
-
-void
-dhd_del_softap_if(struct net_device *dev)
-{
-	dhd_info_t *dhd = *(dhd_info_t **)netdev_priv(dev);
-
-	DHD_TRACE(("%s: Enter\n", __FUNCTION__));
-	
-	dhd_del_if(dhd, 1);
-}
-#endif
 
 dhd_pub_t *
 dhd_attach(osl_t *osh, struct dhd_bus *bus, uint bus_hdrlen, void *dev)
@@ -2281,11 +2204,6 @@ dhd_attach(osl_t *osh, struct dhd_bus *bus, uint bus_hdrlen, void *dev)
 	 */
 	memcpy(netdev_priv(net), &dhd, sizeof(dhd));
 
-#if defined(CONFIG_LGE_BCM432X_PATCH)		//by sjpark 11-02-01
-	if(net)
-		g_net_dev = net;
-#endif
-
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)) && defined(CONFIG_PM_SLEEP)
 	register_pm_notifier(&dhd_sleep_pm_notifier);
 #endif /*  (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)) && defined(CONFIG_PM_SLEEP) */
@@ -2407,19 +2325,9 @@ dhd_bus_start(dhd_pub_t *dhdp)
 /* enable dongle roaming event */
 	setbit(dhdp->eventmask, WLC_E_ROAM);
 
-#if defined(CONFIG_LGE_BCM432X_PATCH)
-	dhdp->pktfilter_count = 1;
-#else
 	dhdp->pktfilter_count = 4;
-#endif
-
-#if defined(CONFIG_LGE_BCM432X_PATCH)
-	/* Setup filter to deny only broadcast */
-	dhdp->pktfilter[0] = "100 0 0 0 0xff 0xff";
-#else
 	/* Setup filter to allow only unicast */
 	dhdp->pktfilter[0] = "100 0 0 0 0x01 0x00";
-#endif
 	dhdp->pktfilter[1] = NULL;
 	dhdp->pktfilter[2] = NULL;
 	dhdp->pktfilter[3] = NULL;
@@ -2738,28 +2646,7 @@ dhd_module_cleanup(void)
 #endif
 	/* Call customer gpio to turn off power with WL_REG_ON signal */
 	dhd_customer_gpio_wlan_ctrl(WLAN_POWER_OFF);
-#if defined(CONFIG_LGE_BCM432X_PATCH)
-	mdelay(500);
-#endif
 }
-
-#if defined(CONFIG_LGE_BCM432X_PATCH)
-#include <linux/mm.h>
-/* check free memory at physical pool */
-int check_low_mem(unsigned int kbytes )
-{
-	struct sysinfo i;
-	si_meminfo(&i);
-#define __KBYTE(x) (((x) << (PAGE_SHIFT - 10)))
-
-	if( kbytes > __KBYTE(i.freeram))
-	{
-		printk("Low memory --> MemFree :     %8lukB\n", __KBYTE(i.freeram));
-		return -1; /* opps */	
-	}
-	return 0; /* ok go */
-}
-#endif	/* CONFIG_LGE_BCM432X_PATCH */
 
 static int __init
 dhd_module_init(void)
@@ -2767,12 +2654,6 @@ dhd_module_init(void)
 	int error;
 
 	DHD_TRACE(("%s: Enter\n", __FUNCTION__));
-
-#if defined(CONFIG_LGE_BCM432X_PATCH)
-	if(check_low_mem(1536/*1.5MBytes*/)){
-		return -ENOMEM;
-	}
-#endif	/* CONFIG_LGE_BCM432X_PATCH */
 
 	/* Sanity check on the module parameters */
 	do {
@@ -3070,24 +2951,8 @@ dhd_os_sdtxunlock(dhd_pub_t *pub)
 }
 
 #ifdef DHD_USE_STATIC_BUF
-#if defined(CONFIG_LGE_BCM432X_PATCH) && defined(CONFIG_BRCM_USE_STATIC_BUF)
-extern void* mem_prealloc( int section, unsigned long size);
-#endif	/* defined(CONFIG_LGE_BCM432X_PATCH) && defined(CONFIG_BRCM_USE_STATIC_BUF) */
 void * dhd_os_prealloc(int section, unsigned long size)
 {
-#if defined(CONFIG_LGE_BCM432X_PATCH) && defined(CONFIG_BRCM_USE_STATIC_BUF)
-	void *alloc_ptr = NULL;
-
-	alloc_ptr = mem_prealloc(section, size);
-	if (alloc_ptr)
-	{
-		DHD_INFO(("success alloc section %d\n", section));
-		bzero(alloc_ptr, size);
-		return alloc_ptr;
-	}
-	DHD_ERROR(("can't alloc section %d\n", section));
-	return 0;
-#else
 #if defined(CUSTOMER_HW2) && defined(CONFIG_WIFI_CONTROL_FUNC)
 	void *alloc_ptr = NULL;
 	if (wifi_control_data && wifi_control_data->mem_prealloc)
@@ -3106,7 +2971,6 @@ void * dhd_os_prealloc(int section, unsigned long size)
 #else
 return MALLOC(0, size);
 #endif /* #if defined(CUSTOMER_HW2) && defined(CONFIG_WIFI_CONTROL_FUNC) */
-#endif /* #defined(CONFIG_LGE_BCM432X_PATCH) && defined(CONFIG_BRCM_USE_STATIC_BUF) */
 }
 #endif /* DHD_USE_STATIC_BUF */
 #if defined(CONFIG_WIRELESS_EXT)
@@ -3350,11 +3214,7 @@ int net_os_send_hang_message(struct net_device *dev)
 	if (dhd) {
 		if (!dhd->pub.hang_was_sent) {
 			dhd->pub.hang_was_sent = 1;
-#if defined(CONFIG_LGE_BCM432X_PATCH)
-			ret = wl_iw_send_priv_event(dev, "HANGED");
-#else
 			ret = wl_iw_send_priv_event(dev, "HANG");
-#endif
 		}
 	}
 	return ret;
@@ -3470,38 +3330,6 @@ exit:
 	return ret;
 }
 #endif /* DHD_DEBUG */
-
-#if defined(CONFIG_LGE_BCM432X_PATCH)
-#include <bcmsdbus.h>
-
-void htclk_fail_reset(void *bus)
-{
-	dhd_info_t *dhd = (dhd_info_t *)bus;
-
-	DHD_TRACE(("Enter %s:%d\n",__func__,__LINE__));
-	/* Turning off watchdog */
-	dhd_os_wd_timer(&dhd->pub, 0);
-
-	dhd_bus_devreset(&dhd->pub, 1);
-
-	sdioh_stop(NULL);
-	
-	dhd_customer_gpio_wlan_ctrl(WLAN_RESET_OFF);
-	mdelay(200);		// 200ms
-	dhd_customer_gpio_wlan_ctrl(WLAN_RESET_ON);
-
-	sdioh_start(NULL, 0);
-	
-	dhd_bus_devreset(&dhd->pub, 0);
-	
-	/* Turning on watchdog back */
-	dhd_os_wd_timer(&dhd->pub, dhd_watchdog_ms);
-
-	sdioh_start(NULL, 1);
-	
-	dhd_preinit_ioctls(&dhd->pub);
-}
-#endif
 
 int dhd_os_wake_lock_timeout(dhd_pub_t *pub)
 {

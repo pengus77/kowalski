@@ -43,13 +43,8 @@
 #define GET_HOME_DWELL  		"HOME="
 #define GET_SCAN_TYPE			"TYPE="
 
-#if defined(CONFIG_LGE_BCM432X_PATCH)
-#define BAND_GET_CMD				"BANDGET"
-#define BAND_SET_CMD				"BANDSET"
-#else
 #define BAND_GET_CMD				"GETBAND"
 #define BAND_SET_CMD				"SETBAND"
-#endif
 #define DTIM_SKIP_GET_CMD			"DTIMSKIPGET"
 #define DTIM_SKIP_SET_CMD			"DTIMSKIPSET"
 #define SETSUSPEND_CMD				"SETSUSPENDOPT"
@@ -77,9 +72,6 @@ struct cntry_locales_custom {
 	int32 custom_locale_rev;
 };
 
-#if defined(CONFIG_LGE_BCM432X_PATCH)
-#define SOFTAP 1
-#endif
 #define	WL_IW_RSSI_MINVAL	-200
 #define	WL_IW_RSSI_NO_SIGNAL	-91
 #define	WL_IW_RSSI_VERY_LOW	-80
@@ -106,16 +98,8 @@ struct cntry_locales_custom {
 #define AP_LPB_CMD              (SIOCIWFIRSTPRIV+23)
 #define WL_AP_STOP              (SIOCIWFIRSTPRIV+25)
 #define WL_FW_RELOAD            (SIOCIWFIRSTPRIV+27)
-#if defined(CONFIG_LGE_BCM432X_PATCH) && defined(SOFTAP)
-#define WL_IW_SET_STOP_SOFTAP	(SIOCIWFIRSTPRIV+29)
-#define WL_IW_SET_START_SOFTAP	(SIOCIWFIRSTPRIV+31)
-#define WL_AP_STA_DISASSOC            (SIOCIWFIRSTPRIV+33)
-#define WL_COMBO_SCAN            (SIOCIWFIRSTPRIV+35)
-#else
 #define WL_AP_STA_DISASSOC		(SIOCIWFIRSTPRIV+29)
 #define WL_COMBO_SCAN           (SIOCIWFIRSTPRIV+31)
-#endif	/* defined(CONFIG_LGE_BCM432X_PATCH) && defined(SOFTAP) */
-
 
 #define G_SCAN_RESULTS		(8*1024)
 #define WE_ADD_EVENT_FIX	0x80
@@ -224,9 +208,6 @@ extern int net_os_wake_lock_timeout_enable(struct net_device *dev);
 extern int net_os_set_suspend_disable(struct net_device *dev, int val);
 extern int net_os_set_suspend(struct net_device *dev, int val);
 extern int net_os_set_dtim_skip(struct net_device *dev, int val);
-#if defined(CONFIG_LGE_BCM432X_PATCH)
-extern int net_os_set_packet_filter(struct net_device *dev, int val);
-#endif
 extern void get_customized_country_code(char *country_iso_code, wl_country_t *cspec);
 extern char *dhd_bus_country_get(struct net_device *dev);
 extern int dhd_get_dtim_skip(dhd_pub_t *dhd);

@@ -17,44 +17,12 @@ config LGE_BCM432X_PATCH
 	default y
 	depends on BCM4329
 
-config BRCM_LGE_WL_PKTFILTER
-	bool "Setting Multicat/Broadcast packet fillter."
-	default n
-	depends on BCM4329
-
-config BRCM_LGE_WL_ARPOFFLOAD
-	bool "Use Arp offload function."
-	default n
-	depends on BCM4329
-
-config BCM4329_GPIO_BT_RESET
-	int "GPIO BT_RESET"
-	default 93
-	depends on BCM4329
-
-config BRCM_LGE_WL_HOSTWAKEUP
-	bool "Support BCM4325/BCM4329 Host Wakeup function"
-	default n
-	depends on BCM4329
-
-config BCM4329_GPIO_WL_HOSTWAKEUP
-	int "GPIO WL_HOSTWAKEUP"
-	default 107
-	depends on BCM4329
-
 config BRCM_USE_DEEPSLEEP
         bool "Use deepsleep instead of dhd_dev_reset"
         default n
         depends on BCM4329
         ---help---
            Use deepsleep instead of dhd_dev_reset and controlling GPIO when driver start or stop.
-
-config BRCM_USE_SOFTAP
-	bool "Use SoftAP"
-	default n
-	depends on BCM4329
-	---help---
-	   Using Softap feature.
 
 config BCM4329_FIRST_SCAN
 	depends on BCM4329

@@ -491,14 +491,6 @@ dhdsdio_set_siaddr_window(dhd_bus_t *bus, uint32 address)
 		                 (address >> 24) & SBSDIO_SBADDRHIGH_MASK, &err);
 	return err;
 }
-#if defined(CONFIG_LGE_BCM432X_PATCH)
-unsigned long old_jiff;
-unsigned long cur_jiff;
-
-int ht_err_cnt;
-extern void htclk_fail_reset(void *bus);
-extern volatile bool dhd_mmc_suspend;
-#endif
 
 
 /* Turn backplane clock on or off */
@@ -530,17 +522,6 @@ dhdsdio_htclk(dhd_bus_t *bus, bool on, bool pendok)
 
 		bcmsdh_cfg_write(sdh, SDIO_FUNC_1, SBSDIO_FUNC1_CHIPCLKCSR, clkreq, &err);
 		if (err) {
-#if defined(CONFIG_LGE_BCM432X_PATCH)
-			if( ht_err_cnt == 0 )
-				old_jiff = jiffies;
-
-			cur_jiff = jiffies;
-			
-			if( (cur_jiff < old_jiff) || (cur_jiff - old_jiff) > 500 )
-				ht_err_cnt = 0;
-			else
-				ht_err_cnt++;
-#endif
 			DHD_ERROR(("%s: HT Avail request error: %d\n", __FUNCTION__, err));
 			return BCME_ERROR;
 		}
@@ -4042,12 +4023,6 @@ dhdsdio_hostmail(dhd_bus_t *bus)
 	return intstatus;
 }
 
-#if defined(CONFIG_LGE_BCM432X_PATCH)
-extern struct net_device *g_net_dev;
-extern bool 	ap_fw_loaded;
-extern int net_os_send_hang_message(struct net_device *dev);
-#endif
-
 bool
 dhdsdio_dpc(dhd_bus_t *bus)
 {
@@ -4061,9 +4036,6 @@ dhdsdio_dpc(dhd_bus_t *bus)
 	bool rxdone = TRUE;		  /* Flag for no more read data */
 	bool resched = FALSE;	  /* Flag indicating resched wanted */
 
-#if defined(CONFIG_LGE_BCM432X_PATCH)
-	int reset_flag = FALSE;
-#endif
 	DHD_TRACE(("%s: Enter\n", __FUNCTION__));
 
 	/* Start with leftover status bits */
@@ -4272,14 +4244,8 @@ clkwait:
 	if ((bus->dhd->busstate == DHD_BUS_DOWN) || bcmsdh_regfail(sdh)) {
 		DHD_ERROR(("%s: failed backplane access over SDIO, halting operation %d \n",
 		           __FUNCTION__, bcmsdh_regfail(sdh)));
-#if defined(CONFIG_LGE_BCM432X_PATCH)
-		bcmsdh_intr_disable(bus->sdh);
-#endif
 		bus->dhd->busstate = DHD_BUS_DOWN;
 		bus->intstatus = 0;
-#if defined(CONFIG_LGE_BCM432X_PATCH)
-		reset_flag = TRUE;
-#endif
 	} else if (bus->clkstate == CLK_PENDING) {
 		DHD_INFO(("%s: rescheduled due to CLK_PENDING awaiting \
 			I_CHIPACTIVE interrupt", __FUNCTION__));
@@ -4300,20 +4266,6 @@ clkwait:
 	}
 
 	dhd_os_sdunlock(bus->dhd);
-
-#if defined(CONFIG_LGE_BCM432X_PATCH)
-	if(reset_flag == TRUE)
-	{
-		if(ap_fw_loaded == FALSE){
-			if(g_net_dev != NULL)
-			{
-				printk("[%s] : net_os_send_hang_message send. Should not occur.\n",__FUNCTION__);
-				net_os_send_hang_message(g_net_dev);
-			}
-		}
-		return 0;
-	}
-#endif
 
 	return resched;
 }
@@ -4337,10 +4289,6 @@ dhdsdio_isr(void *arg)
 	bcmsdh_info_t *sdh;
 
 	DHD_TRACE(("%s: Enter\n", __FUNCTION__));
-
-#if defined(CONFIG_LGE_BCM432X_PATCH)
-	dhd_mmc_suspend = FALSE;
-#endif
 
 	if (!bus) {
 		DHD_ERROR(("%s : bus is null pointer , exit \n", __FUNCTION__));
@@ -4841,11 +4789,7 @@ dhdsdio_probe(uint16 venid, uint16 devid, uint16 bus_no, uint16 slot,
 	sd1idle = TRUE;
 	dhd_readahead = TRUE;
 	retrydata = FALSE;
-#if defined(CONFIG_LGE_BCM432X_PATCH)
-	dhd_doflow = FALSE;
-#else
 	dhd_doflow = TRUE;
-#endif
 	dhd_dongle_memsize = 0;
 	dhd_txminmax = DHD_TXMINMAX;
 

@@ -1423,9 +1423,9 @@ static int dhd_preinit_proc(dhd_pub_t *dhd, int ifidx, char *name, char *value)
 		DHD_ERROR(("%s: cur_etheraddr", __FUNCTION__));
 
 		bcm_ether_atoe(value, &ea);
-		printk("%s: Change Macaddr = %02X:%02X:%02X:%02X:%02X:%02X\n",__FUNCTION__,
+		DHD_INFO(("%s: Change Macaddr = %02X:%02X:%02X:%02X:%02X:%02X\n",__FUNCTION__,
 				ea.octet[0], ea.octet[1], ea.octet[2],
-				ea.octet[3], ea.octet[4], ea.octet[5]);
+				ea.octet[3], ea.octet[4], ea.octet[5]));
 
 		iovlen = bcm_mkiovar("cur_etheraddr", (char*)&ea, ETHER_ADDR_LEN, buf, 32);
 
@@ -1481,14 +1481,14 @@ static int dhd_preinit_config(dhd_pub_t *dhd, int ifidx)
 	set_fs(get_ds());
 	if ((ret = vfs_stat(config_path, &stat))) {
 		set_fs(old_fs);
-		printk(KERN_ERR "%s: Failed to get information (%d)\n",
-				config_path, ret);
+		DHD_ERROR(("%s: Failed to get information (%d)\n",
+				config_path, ret));
 		return ret;
 	}
 	set_fs(old_fs);
 
 	if (!(buf = MALLOC(dhd->osh, stat.size + 1))) {
-		printk(KERN_ERR "Failed to allocate memory %llu bytes\n", stat.size);
+		DHD_ERROR(("Failed to allocate memory %llu bytes\n", stat.size));
 		return -ENOMEM;
 	}
 
@@ -1507,8 +1507,8 @@ static int dhd_preinit_config(dhd_pub_t *dhd, int ifidx)
 				for (value = p; *p && !isspace(*p); p++);
 				*p = '\0';
 				if ((ret = dhd_preinit_proc(dhd, ifidx, name, value)) < 0)
-					printk(KERN_ERR "%s: %s=%s\n",
-							bcmerrorstr(ret), name, value);
+					DHD_ERROR(("%s: %s=%s\n",
+							bcmerrorstr(ret), name, value));
 				break;
 			}
 		}
@@ -1552,7 +1552,7 @@ static int dhd_util_ascii_to_hex(char* keystr, uint32 keystrlen, char* dst)
 	}
 
 	if (hex_len > (TEMP_BUF_LEN*2)) {
-		printk(KERN_INFO "keystrlen is too long %u\n", keystrlen);
+		DHD_ERROR((KERN_INFO "keystrlen is too long %u\n", keystrlen));
 		return -1;
 	}
 
@@ -1596,20 +1596,20 @@ static int dhd_custom_read_nvdata(
 	set_fs(get_ds());
 	if ((ret = vfs_stat(filename, &stat))) {
 		set_fs(old_fs);
-		printk(KERN_ERR "%s: Failed to get information (%d)\n",
-				filename, ret);
+		DHD_ERROR(("%s: Failed to get information (%d)\n",
+				filename, ret));
 		return ret;
 	}
 	set_fs(old_fs);
 
 	if (!(buf = MALLOC(dhd->osh, nmemb/*stat.size*/ + 1))) {
-		printk(KERN_ERR "Failed to allocate memory nmemb : %u, stat.size : %llu bytes\n", nmemb, stat.size);
+		DHD_ERROR(("Failed to allocate memory nmemb : %u, stat.size : %llu bytes\n", nmemb, stat.size));
 		return (ret = -ENOMEM);
 	}
 
 	if (!(fp = dhd_os_open_image(filename)) ||
 			(len = dhd_os_get_image_block(buf, nmemb/*stat.size*/, fp)) < 0) {
-		printk(KERN_ERR "Failed to read file");
+		DHD_ERROR(("Failed to read file"));
 		ret = -1;
 		goto out;
 	}

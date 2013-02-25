@@ -547,8 +547,8 @@ int dhd_deep_sleep(struct net_device *dev, int flag)
 		return 0;
 
     switch(flag) {
-	case 1: /* DEEPSLEEP ON*/
-		   printk(KERN_INFO "===== [WiFi] DEEP SLEEP ON =====\n");
+	case 1: /* DEEPSLEEP ON */
+		   DHD_INFO(("===== [WiFi] DEEP SLEEP ON =====\n"));
 	
 		   /* Disable MPC */	
 		   powervar = 0;
@@ -561,8 +561,8 @@ int dhd_deep_sleep(struct net_device *dev, int flag)
 		   dhdcdc_set_ioctl(dhd_pub, 0, WLC_SET_VAR, iovbuf, sizeof(iovbuf));
 		   break;
 
-	case 0: /*DEEPSLEEP OFF*/
-		   printk(KERN_INFO "===== [WiFi] DEEP SLEEP OFF =====\n");
+	case 0: /* DEEPSLEEP OFF */
+		   DHD_INFO(("===== [WiFi] DEEP SLEEP OFF =====\n"));
 
 		   /* Disable Deep Sleep */	
 		   powervar = 0;
@@ -576,7 +576,7 @@ int dhd_deep_sleep(struct net_device *dev, int flag)
 		   break;
 
 	default: 
-		   printk(KERN_ERR "[%s] Invalid Input Flag (%d)",__FUNCTION__, flag);
+		   DHD_ERROR(("[%s] Invalid Input Flag (%d)",__FUNCTION__, flag));
 
     }
 
