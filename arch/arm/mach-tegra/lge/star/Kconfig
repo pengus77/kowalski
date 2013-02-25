@@ -132,7 +132,7 @@ config MACH_STAR_DUMP_GPIO
 
 config CM_BOOTLOADER_COMPAT
     bool "CyanogenMod boot with the older (pre-ICS) bootloaders"
-	default y
+	default n
 	depends on MACH_STAR
 	help
 	  Allow CM (and other custom builds) to run on the older (and 
