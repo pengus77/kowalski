@@ -58,7 +58,12 @@ static const int max8952_mode1_voltages[] = {
 	// Refer dvfs table for vdd_cpu
 	// In SU660, we use only MODE1
 	750000, 775000, 800000, 825000, 850000, 875000, 900000, 925000, 950000, 975000, 
+#ifdef CONFIG_TEGRA_OC
+	1000000, 1025000, 1050000, 1100000, 1125000,
+	1150000, 1200000, 1225000, 1250000, 1275000, 1300000, 1325000, 1350000, 1400000,
+#else
 	1000000, 1025000, 1050000, 1100000, 1125000
+#endif
 };
 
 static const int max8952_mode2_voltages[] = {
