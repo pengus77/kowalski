@@ -803,6 +803,7 @@ static int tegra_cpu_init(struct cpufreq_policy *policy)
 
 	cpufreq_frequency_table_cpuinfo(policy, freq_table);
 	cpufreq_frequency_table_get_attr(freq_table, policy->cpu);
+	policy->max = 1000000;
 	policy->cur = tegra_getspeed(policy->cpu);
 	target_cpu_speed[policy->cpu] = policy->cur;
 
