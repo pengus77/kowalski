@@ -28,12 +28,12 @@
 #define LGE_TOUCH_NAME "star_synaptics"
 #endif
 
-#define SYNAPTICS_TOUCH_DEBUG_LEVEL 3
+//#define SYNAPTICS_TOUCH_DEBUG_LEVEL 3
 
 #ifdef SYNAPTICS_TOUCH_DEBUG_LEVEL
 #define DEBUG_MSG(_level, args...)  \
 	if(_level >= SYNAPTICS_TOUCH_DEBUG_LEVEL)	\
-printk(KERN_INFO args);
+		printk(KERN_INFO args);
 #else
 #define DEBUG_MSG(_level, args...)
 #endif
