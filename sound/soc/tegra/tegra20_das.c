@@ -50,24 +50,6 @@ static inline u32 tegra20_das_read(u32 reg)
 }
 
 #ifdef CONFIG_PM
-#if defined (CONFIG_MACH_STAR)
-int tegra20_das_suspend()
-{
-	int i, reg;
-
-	for (i = 0; i <= TEGRA20_DAS_DAP_ID_5; i++)
-		das->reg_cache[i] = tegra20_das_read(i << 2);
-
-	for (i = 0; i <= TEGRA20_DAS_DAC_ID_3; i++) {
-		reg = TEGRA20_DAS_DAC_INPUT_DATA_CLK_SEL +
-			(i * TEGRA20_DAS_DAC_INPUT_DATA_CLK_SEL_STRIDE);
-		das->reg_cache[reg >> 2] = tegra20_das_read(reg);
-	}
-
-	return 0;
-}
-#endif
-
 int tegra20_das_resume()
 {
 	int i, reg;

@@ -204,7 +204,7 @@ static int snd_soc_rbtree_cache_sync(struct snd_soc_codec *codec)
 		for (i = 0; i < rbnode->blklen; ++i) {
 			regtmp = rbnode->base_reg + i;
 			val = snd_soc_rbtree_get_register(rbnode, i);
-			def = snd_soc_get_cache_val(codec->reg_def_copy, regtmp,
+			def = snd_soc_get_cache_val(codec->reg_def_copy, i,
 						    rbnode->word_size);
 			if (val == def)
 				continue;
