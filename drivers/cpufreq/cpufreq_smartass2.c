@@ -729,11 +729,13 @@ static int cpufreq_governor_smartass(struct cpufreq_policy *new_policy,
 		flush_work(&freq_scale_work);
 		this_smartass->idle_exit_time = 0;
 
-		if (atomic_dec_return(&active_count) <= 1) {
-			sysfs_remove_group(cpufreq_global_kobject,
-					   &smartass_attr_group);
-			pm_idle = pm_idle_old;
-		}
+		if (atomic_dec_return(&active_count) > 0)
+			return 0;
+		
+		sysfs_remove_group(cpufreq_global_kobject,
+				&smartass_attr_group);
+		pm_idle = pm_idle_old;
+
 		break;
 	}
 
