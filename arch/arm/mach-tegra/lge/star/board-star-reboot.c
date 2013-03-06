@@ -62,7 +62,7 @@ extern void read_cmd_reserved_buffer(unsigned char *buf, size_t len);
 static int star_panic_notify(struct notifier_block *this,
 		unsigned long event, void *ptr)
 {
-	unsigned char buf[3] = { 'w','a','n' };
+	unsigned char buf[4] = {'w', 'a', 'n', 0};
 	write_cmd_reserved_buffer(buf,3);
 	printk(KERN_DEBUG "star_panic_notify : buf = %s\n", (unsigned char *)buf);
 	return NOTIFY_DONE;
@@ -71,7 +71,7 @@ static int star_panic_notify(struct notifier_block *this,
 static int star_reboot_notify(struct notifier_block *nb,
 		unsigned long event, void *data)
 {
-	unsigned char rsbuf[3] = {0,};
+	unsigned char rsbuf[4] = {0, 0, 0, 0};
 
 	printk(KERN_DEBUG "star_reboot_notify\n");
 	if(data)
@@ -129,7 +129,7 @@ static ssize_t star_rs_reset_write(struct device *dev, struct device_attribute *
 
 static ssize_t star_rs_reset_read(struct device *dev, struct device_attribute *attr, const char *buf)
 {
-	unsigned char rsbuf[3] = { 0,};
+	unsigned char rsbuf[4] = {0, 0, 0, 0};
 	ssize_t ret = 0;
 	int rs = -1;
 	read_cmd_reserved_buffer(rsbuf,3);
