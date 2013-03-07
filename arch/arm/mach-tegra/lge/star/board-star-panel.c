@@ -44,11 +44,6 @@
 
 #include <mach-tegra/cpu-tegra.h>
 
-#ifdef CONFIG_TEGRA_DC
-static struct regulator *star_hdmi_reg = NULL;
-static struct regulator *star_hdmi_pll = NULL;
-#endif
-
 /* GPIOs for Hitachi LCD */
 #define STAR_HITACHI_LCD_RESET	TEGRA_GPIO_PV7
 #define STAR_HITACHI_LCD_CS	TEGRA_GPIO_PN4
@@ -464,9 +459,6 @@ static struct hitachi_lcd_data_set lgd_lcd_init_data[]= {
 };
 
 
-static struct regulator *reg_lcd_1v8 = NULL;
-static struct regulator *reg_lcd_vdd = NULL;
-
 /* GPIOs for AAT2870 backlight */
 #define STAR_AAT2870_BL_EN	TEGRA_GPIO_PR3
 #define STAR_AAT2870_BL_SDA	TEGRA_GPIO_PQ0
@@ -573,6 +565,9 @@ static int star_panel_postpoweron(void)
 {
 	int i;
 
+	static struct regulator *reg_lcd_1v8 = NULL;
+	static struct regulator *reg_lcd_vdd = NULL;
+
 	if(is_lcd_panel_poweron) // already power on
 	{
 		printk(KERN_DEBUG "already power on\n");
@@ -580,6 +575,27 @@ static int star_panel_postpoweron(void)
 	}
 
 	printk(KERN_DEBUG "\n star_panel_postpoweron...... \n");
+
+	reg_lcd_1v8 = regulator_get_exclusive(NULL, "vcc_lcd_1v8");
+	if (IS_ERR_OR_NULL(reg_lcd_1v8))
+		pr_err("lcd: couldn't get regulator vcc_lcd_1v8\n");
+
+	reg_lcd_vdd = regulator_get_exclusive(NULL, "vcc_lcd_2v8");
+	if (IS_ERR_OR_NULL(reg_lcd_vdd))
+		pr_err("Failed to get vcc_lcd_2v8\n");
+
+	if (reg_lcd_1v8 == NULL || reg_lcd_vdd == NULL)
+	{
+		if (reg_lcd_1v8)
+			regulator_put(reg_lcd_1v8);
+		if (reg_lcd_vdd)
+			regulator_put(reg_lcd_vdd);
+
+		if (reg_lcd_1v8 == NULL)
+			return PTR_ERR(reg_lcd_1v8);
+		if (reg_lcd_vdd)
+			return PTR_ERR(reg_lcd_vdd);
+	}
 
 #if defined(CONFIG_MACH_STAR)
 	g_is_suspend=1;
@@ -593,24 +609,13 @@ static int star_panel_postpoweron(void)
 		gpio_set_value(STAR_HITACHI_LCD_CS, 0);
 		gpio_set_value(STAR_HITACHI_LCD_CS, 1);
 		mdelay(1);
-		if (!reg_lcd_1v8) {
-			reg_lcd_1v8 = regulator_get_exclusive(NULL, "vcc_lcd_1v8");
-			if (IS_ERR_OR_NULL(reg_lcd_1v8)) {
-				pr_err("lcd: couldn't get regulator vddio_mipi\n");
-			}
-			regulator_set_voltage(reg_lcd_1v8, 1800000, 1800000);
-		}
+		
+		regulator_set_voltage(reg_lcd_1v8, 1800000, 1800000);
 
 		if(!regulator_is_enabled(reg_lcd_1v8))
 			regulator_enable(reg_lcd_1v8);
 
-		if (!reg_lcd_vdd) {
-			reg_lcd_vdd = regulator_get_exclusive(NULL, "vcc_lcd_2v8");
-			if (IS_ERR(reg_lcd_vdd)) {
-				pr_err("Failed to get vcc_lcd_2v8\n");
-			}
-			regulator_set_voltage(reg_lcd_vdd, 3100000, 3100000);
-		}
+		regulator_set_voltage(reg_lcd_vdd, 3100000, 3100000);
 
 		if(!regulator_is_enabled(reg_lcd_vdd))
 			regulator_enable(reg_lcd_vdd);
@@ -635,24 +640,12 @@ static int star_panel_postpoweron(void)
 	{	
 		printk(KERN_DEBUG "\n star Hitach star_panel_postpoweron...... \n");
 
-		if (!reg_lcd_1v8) {
-			reg_lcd_1v8 = regulator_get_exclusive(NULL, "vcc_lcd_1v8");
-			if (IS_ERR_OR_NULL(reg_lcd_1v8)) {
-				pr_err("lcd: couldn't get regulator vddio_mipi\n");
-			}
-			regulator_set_voltage(reg_lcd_1v8, 1800000, 1800000);
-		}
+		regulator_set_voltage(reg_lcd_1v8, 1800000, 1800000);
 
 		if(!regulator_is_enabled(reg_lcd_1v8))
 			regulator_enable(reg_lcd_1v8);
 
-		if (!reg_lcd_vdd) {
-			reg_lcd_vdd = regulator_get_exclusive(NULL, "vcc_lcd_2v8");
-			if (IS_ERR(reg_lcd_vdd)) {
-				pr_err("Failed to get vcc_lcd_2v8\n");
-			}
-			regulator_set_voltage(reg_lcd_vdd, 2800000, 2800000);
-		}
+		regulator_set_voltage(reg_lcd_vdd, 2800000, 2800000);
 
 		if(!regulator_is_enabled(reg_lcd_vdd))
 			regulator_enable(reg_lcd_vdd);
@@ -690,12 +683,17 @@ static int star_panel_postpoweron(void)
 	is_lcd_panel_poweroff = 0;
 	is_lcd_panel_poweron = 1;
 
+	regulator_put(reg_lcd_1v8);
+	regulator_put(reg_lcd_vdd);
+
 	return 0;
 }
 
 static int star_panel_postsuspend(void)
 {
 	int i;
+
+	static struct regulator *reg_lcd_1v8 = NULL;
 
 	if(is_lcd_panel_poweroff)	//already power off
 	{
@@ -704,6 +702,13 @@ static int star_panel_postsuspend(void)
 	}
 
 	printk(KERN_DEBUG "\n star_panel_postsuspend...... \n");
+
+	reg_lcd_1v8 = regulator_get_exclusive(NULL, "vcc_lcd_1v8");
+	if (IS_ERR_OR_NULL(reg_lcd_1v8)) {
+		pr_err("lcd: couldn't get regulator vcc_lcd_1v8\n");
+		regulator_put(reg_lcd_1v8);
+		return PTR_ERR(reg_lcd_1v8);
+	}
 
 	gpio_direction_output(STAR_HITACHI_LCD_CS, 1);
 	tegra_gpio_enable(STAR_HITACHI_LCD_CS);
@@ -736,13 +741,7 @@ static int star_panel_postsuspend(void)
 	// pull reset to low
 	gpio_set_value(STAR_HITACHI_LCD_RESET, 0);
 
-	if (!reg_lcd_1v8) {
-		reg_lcd_1v8 = regulator_get_exclusive(NULL, "vcc_lcd_1v8");
-		if (IS_ERR_OR_NULL(reg_lcd_1v8)) {
-			pr_err("lcd: couldn't get regulator vddio_mipi\n");
-		}
-		regulator_set_voltage(reg_lcd_1v8, 1800000, 1800000);
-	}
+	regulator_set_voltage(reg_lcd_1v8, 1800000, 1800000);
 
 	if(regulator_is_enabled(reg_lcd_1v8))
 		regulator_disable(reg_lcd_1v8);
@@ -752,40 +751,79 @@ static int star_panel_postsuspend(void)
 	is_lcd_panel_poweroff = 1;
 	is_lcd_panel_poweron = 0;
 
+	regulator_put(reg_lcd_1v8);
+
 	return 0;
 }
 
 #ifdef CONFIG_TEGRA_DC
 static int star_hdmi_enable(void)
 {
-	if (!star_hdmi_reg) {
-		star_hdmi_reg = regulator_get(NULL, "avdd_hdmi"); /* LD011 */
-		if (IS_ERR_OR_NULL(star_hdmi_reg)) {
-			pr_err("hdmi: couldn't get regulator avdd_hdmi\n");
-			star_hdmi_reg = NULL;
-			return PTR_ERR(star_hdmi_reg);
-		}
-	}
-	regulator_enable(star_hdmi_reg);
+	static struct regulator *star_hdmi_reg = NULL;
+	static struct regulator *star_hdmi_pll = NULL;
 
-	if (!star_hdmi_pll) {
-		star_hdmi_pll = regulator_get(NULL, "avdd_hdmi_pll"); /* LD06 */
-		if (IS_ERR_OR_NULL(star_hdmi_pll)) {
-			pr_err("hdmi: couldn't get regulator avdd_hdmi_pll\n");
-			star_hdmi_pll = NULL;
-			regulator_disable(star_hdmi_reg);
-			star_hdmi_reg = NULL;
+	star_hdmi_reg = regulator_get(NULL, "avdd_hdmi"); /* LD011 */
+	if (IS_ERR_OR_NULL(star_hdmi_reg))
+		pr_err("hdmi: couldn't get regulator avdd_hdmi\n");
+
+	star_hdmi_pll = regulator_get(NULL, "avdd_hdmi_pll"); /* LD06 */
+	if (IS_ERR_OR_NULL(star_hdmi_pll))
+		pr_err("hdmi: couldn't get regulator avdd_hdmi_pll\n");
+
+	if (star_hdmi_reg == NULL || star_hdmi_pll == NULL)
+	{
+		if (star_hdmi_reg)
+			regulator_put(star_hdmi_reg);
+		if (star_hdmi_pll)
+			regulator_put(star_hdmi_pll);
+		
+		if (star_hdmi_reg == NULL)
+			return PTR_ERR(star_hdmi_reg);
+		if (star_hdmi_pll == NULL)
 			return PTR_ERR(star_hdmi_pll);
-		}
 	}
+
+	regulator_enable(star_hdmi_reg);
 	regulator_enable(star_hdmi_pll);
+
+	regulator_put(star_hdmi_reg);
+	regulator_put(star_hdmi_pll);
+
 	return 0;
 }
 
 static int star_hdmi_disable(void)
 {
+	static struct regulator *star_hdmi_reg = NULL;
+	static struct regulator *star_hdmi_pll = NULL;
+
+	star_hdmi_reg = regulator_get(NULL, "avdd_hdmi"); /* LD011 */
+	if (IS_ERR_OR_NULL(star_hdmi_reg))
+		pr_err("hdmi: couldn't get regulator avdd_hdmi\n");
+
+	star_hdmi_pll = regulator_get(NULL, "avdd_hdmi_pll"); /* LD06 */
+	if (IS_ERR_OR_NULL(star_hdmi_pll))
+		pr_err("hdmi: couldn't get regulator avdd_hdmi_pll\n");
+
+	if (star_hdmi_reg == NULL || star_hdmi_pll == NULL)
+	{
+		if (star_hdmi_reg)
+			regulator_put(star_hdmi_reg);
+		if (star_hdmi_pll)
+			regulator_put(star_hdmi_pll);
+		
+		if (star_hdmi_reg == NULL)
+			return PTR_ERR(star_hdmi_reg);
+		if (star_hdmi_pll == NULL)
+			return PTR_ERR(star_hdmi_pll);
+	}
+
 	regulator_disable(star_hdmi_reg);
 	regulator_disable(star_hdmi_pll);
+
+	regulator_put(star_hdmi_reg);
+	regulator_put(star_hdmi_pll);
+
 	return 0;
 }
 
@@ -855,10 +893,6 @@ static struct tegra_dc_out_pin star_dc_out_pins[] = {
 		.name = TEGRA_DC_OUT_PIN_PIXEL_CLOCK,
 		.pol = TEGRA_DC_OUT_PIN_POL_LOW,
 	},
-};
-
-static u8 star_dc_out_pin_sel_config[] = {
-	TEGRA_PIN_OUT_CONFIG_SEL_LM1_M1,
 };
 
 static struct tegra_dc_out star_disp1_out = {

@@ -157,52 +157,12 @@ void gp2a_read_forcely(struct gp2a_data *gp2a) {
 	queue_work(gp2a_wq, &gp2a->work_prox);
 }
 
-static void set_regulator_state(bool enable, struct regulator *regulator) {
-	if (enable) {
-		if (!regulator_is_enabled(regulator)) {
-			regulator_enable(regulator);
-		}
-	} else {
-		if (regulator_is_enabled(regulator)) {
-			regulator_disable(regulator);
-		}
-	}
-}
-
-static struct regulator* init_and_get_regulator(const char *regulator_name) {
-	struct regulator *re = regulator_get(NULL, regulator_name);
-	if (!re) {
-		printk(KERN_INFO "Proximity Sensor: %s failed\n", regulator_name);
-		return NULL;
-	} else {
-		regulator_set_voltage(re, 2800000, 2800000);
-	}
-	return re;
-}
-
-void gp2a_init_power_control(void) {
-	if (!regulator1) {
-		regulator1 = init_and_get_regulator("vcc_sensor_3v0");
-	}
-	if (!regulator2) {
-		regulator2 = init_and_get_regulator("vcc_sensor_1v8");
-	}
-}
-
-void gp2a_power_control(bool enable) {
-	gprintk("\n");
-	set_regulator_state(enable, regulator1);
-	set_regulator_state(enable, regulator2);
-}
-EXPORT_SYMBOL(gp2a_power_control);
-
 void gp2a_on(struct gp2a_data *gp2a) {
 	int i;
 
 	mutex_lock(&gp2a->lock);
 	if(proximity_enable == OFF) {
 		gprintk("gp2a power on\n");
-		gp2a_power_control(ON);
 
 		opt_i2c_write(gp2a, (u8)(REGS_CON),  0x18);
 		//init register
@@ -338,7 +298,6 @@ static int gp2a_opt_probe(struct i2c_client *client,
 	}
 	disable_irq_nosync(gp2a->irq);
 
-	gp2a_power_control(ON);
 	mdelay(5);
 	/* Proximity Suspend Mode */
 	opt_i2c_write(gp2a, (u8)(REGS_OPMOD), 0x02);
@@ -400,7 +359,6 @@ static struct i2c_driver gp2a_opt_driver = {
 
 static int __init gp2a_opt_init(void) {
 	printk(KERN_INFO "enter %s\n", __func__);
-	gp2a_init_power_control();
 	return i2c_add_driver(&gp2a_opt_driver);
 }
 

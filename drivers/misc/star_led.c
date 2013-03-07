@@ -93,6 +93,8 @@ static void star_led_remove(struct platform_device *pdev)
 {
 	struct max8907c_led *led = platform_get_drvdata(pdev);
 
+	regulator_put(led->isink);
+
 	led_classdev_unregister(&led->cdev);
 	kfree(led);
 }

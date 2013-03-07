@@ -124,11 +124,6 @@
 
 #endif
 
-static struct regulator *reg_avdd_cam1; /* LDO9 */
-static struct regulator *reg_vdd_af;    /* LDO13 */
-static struct regulator *reg_vdd_mipi;  /* LDO17 */
-static struct regulator *reg_vddio_vi;  /* LDO18 */
-
 #define MAIN_CAM_RESET_GPIO        TEGRA_GPIO_PD2
 #define MAIN_CAM_VCM_EN_GPIO       TEGRA_GPIO_PT4
 #define SUB_CAM_RESET_GPIO         TEGRA_GPIO_PBB1
@@ -301,6 +296,8 @@ static int star_camera_init(void)
 #if defined(CONFIG_TORCH_AAT1270)
 	platform_device_register(&star_aat1270_device);
 #endif
+
+	return 0;
 }
 
 
@@ -396,6 +393,7 @@ int __init star_sensors_init(void)
 	return 0;
 }
 
+#if 0
 int __init star_sensor_late_init(void)
 {
 	int ret;
@@ -427,3 +425,4 @@ fail_put_regulator:
 }
 
 late_initcall(star_sensor_late_init);
+#endif

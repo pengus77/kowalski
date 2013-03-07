@@ -1834,34 +1834,43 @@ static void mpu3050_power_init(void)
 {
 	struct regulator *regulator1 = NULL;
 	struct regulator *regulator2 = NULL;
-	unsigned int gyro_int_gpio;
-
-	gyro_int_gpio = TEGRA_GPIO_PQ5;
-	gpio_request(gyro_int_gpio, "gyro_int");
-	gpio_direction_output(gyro_int_gpio, 0);
-	tegra_gpio_enable(gyro_int_gpio);
 
 	regulator1 = regulator_get(NULL, "vcc_sensor_3v0");
 	if (!regulator1) {
 		printk(KERN_INFO "mpu3050: vcc_sensor_3v0 failed\n");
 	}
 
-	regulator_set_voltage(regulator1, 3000000, 3000000);
-
 	regulator2 = regulator_get(NULL, "vcc_sensor_1v8");
 	if (!regulator2) {
 		printk(KERN_INFO "mpu3050: vcc_sensor_1v8 failed\n");
 	}
+
+	if (regulator1 == NULL || regulator2 == NULL)
+	{
+		if (regulator1)
+			regulator_put(regulator1);
+		if (regulator2)
+			regulator_put(regulator2);
+		return;
+	}
+	
+	regulator_set_voltage(regulator1, 3000000, 3000000);
 	regulator_set_voltage(regulator2, 1800000, 1800000);
 
 	regulator_enable(regulator1);
 	mdelay(10);
 	regulator_enable(regulator2);
 	mdelay(10);
-	gpio_direction_input(gyro_int_gpio);	
 
+	regulator_put(regulator1);
+	regulator_put(regulator2);
+
+	gpio_request(TEGRA_GPIO_PQ5, "gyro_int");
 	gpio_request(TEGRA_GPIO_PR4, "com_int");
 	gpio_request(TEGRA_GPIO_PI0, "motion_int");
+
+	gpio_direction_output(TEGRA_GPIO_PQ5, 0);
+	gpio_direction_input(TEGRA_GPIO_PQ5);	
 	gpio_direction_input(TEGRA_GPIO_PR4);
 	gpio_direction_input(TEGRA_GPIO_PI0);
 
@@ -1873,22 +1882,37 @@ static void mpu3050_power_terminate(void)
 	struct regulator *regulator1 = NULL;
 	struct regulator *regulator2 = NULL;
 
-	mdelay(10);
 	regulator1 = regulator_get(NULL, "vcc_sensor_3v0");
 	if (!regulator1) {
 		printk(KERN_INFO "mpu3050: vcc_sensor_3v0 failed\n");
 	}
 	regulator_set_voltage(regulator1, 3000*1000, 3000*1000);
+
 	regulator2 = regulator_get(NULL, "vcc_sensor_1v8");
 	if (!regulator2) {
 		printk(KERN_INFO "mpu3050: vcc_sensor_1v8 failed\n");
 	}
+
+	if (regulator1 == NULL || regulator2 == NULL)
+	{
+		if (regulator1)
+			regulator_put(regulator1);
+		if (regulator2)
+			regulator_put(regulator2);
+		return;
+	}
+
 	regulator_set_voltage(regulator2, 1800*1000, 1800*1000);
 
 	regulator_disable(regulator2);	// 1.8 VI/O OFF
 	mdelay(10);
 	regulator_disable(regulator1);	// 3.0 VDD OFF
+	mdelay(10);
 
+	regulator_put(regulator1);
+	regulator_put(regulator2);
+
+	gpio_free(TEGRA_GPIO_PQ5);
 	gpio_free(TEGRA_GPIO_PR4);
 	gpio_free(TEGRA_GPIO_PI0);
 }

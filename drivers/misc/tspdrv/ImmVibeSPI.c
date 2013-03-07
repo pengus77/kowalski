@@ -60,8 +60,6 @@ static bool g_bAmpEnabled = false;
 
 static int nv_vibe_gpio_en =  TEGRA_GPIO_PU4;
 
-static struct regulator *nv_vib_regulator = NULL;
-
 static void nv_vibrator_gpio_enable (int enable)
 {
 	if (enable)
@@ -72,8 +70,11 @@ static void nv_vibrator_gpio_enable (int enable)
 
 static void nv_vibrator_LDO_enable(int val)
 {
+	static struct regulator *nv_vib_regulator = NULL;
+
+	nv_vib_regulator = regulator_get(NULL, "vcc_motor_3v0");
 	if (nv_vib_regulator == NULL)
-		nv_vib_regulator = regulator_get(NULL, "vcc_motor_3v0");
+		return;
 
 	if (val == 1)
 	{
@@ -89,6 +90,8 @@ static void nv_vibrator_LDO_enable(int val)
 			regulator_disable(nv_vib_regulator);
 		}
 	}
+
+	regulator_put(nv_vib_regulator);
 }
 
 static void vib_enable(int on )

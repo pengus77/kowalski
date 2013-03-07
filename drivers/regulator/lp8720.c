@@ -14,7 +14,6 @@
 
 static struct i2c_client *lp8720_client = NULL;
 
-//20110901 hyongbink@nvidia.com
 static struct regulator *regulator_vddio_mipi = NULL;
 static struct regulator *regulator_vddio_vi = NULL;
 
@@ -23,7 +22,7 @@ static u8	af	=	0;
 static u8	vt	=	0;
 static int	enabled	=	0;
 
-static void	lp8720_enable(struct i2c_client* client, int status)
+static void lp8720_enable(struct i2c_client* client, int status)
 {
 	struct lp8720_platform_data*	pdata	=	client->dev.platform_data;
 	int data;
@@ -66,7 +65,7 @@ static void	lp8720_enable(struct i2c_client* client, int status)
 	enabled	=	status;
 }
 
-static void	lp8720_ldo_update(struct i2c_client* client)
+static void lp8720_ldo_update(struct i2c_client* client)
 {
 	u8	output	=	0;
 
@@ -242,11 +241,35 @@ static int __init lp8720_probe(struct i2c_client *client, const struct i2c_devic
 	printk(KERN_DEBUG "%s: ++++\n", __FUNCTION__);
 
 	if (i2c_get_clientdata(client))
-		return	-EBUSY;
+		return -EBUSY;
 
 	regulator_vddio_vi = regulator_get(NULL, "vddio_vi");
-	if (IS_ERR_OR_NULL(regulator_vddio_vi)) {
+	if (IS_ERR_OR_NULL(regulator_vddio_vi))
 		pr_err("%s: Couldn't get regulator vddio_vi\n", __func__);
+
+	regulator_vddio_mipi = regulator_get(NULL, "vddio_mipi");
+	if (IS_ERR_OR_NULL(regulator_vddio_mipi))
+		pr_err("dsi: couldn't get regulator vddio_mipi\n");
+
+	if (regulator_vddio_vi == NULL || regulator_vddio_mipi == NULL)
+	{
+		if (regulator_vddio_vi)
+		{
+			regulator_put(regulator_vddio_vi);
+			regulator_vddio_vi = NULL;
+		}
+
+		if (regulator_vddio_mipi)
+		{
+			regulator_put(regulator_vddio_mipi);
+			regulator_vddio_vi = NULL;
+		}
+
+		if (regulator_vddio_vi == NULL)
+			return PTR_ERR(regulator_vddio_vi);
+
+		if (regulator_vddio_mipi == NULL)
+			return PTR_ERR(regulator_vddio_mipi);
 	}
 
 	/* set vddio_vi voltage to 1.8v */
@@ -256,12 +279,6 @@ static int __init lp8720_probe(struct i2c_client *client, const struct i2c_devic
 	}
 
 	regulator_enable(regulator_vddio_vi);
-
-	regulator_vddio_mipi = regulator_get(NULL, "vddio_mipi");
-	if (IS_ERR_OR_NULL(regulator_vddio_mipi)) {
-		pr_err("dsi: couldn't get regulator vddio_mipi\n");
-		regulator_vddio_mipi = NULL;
-	}
 
 	// device data
 	pdata	=	client->dev.platform_data;
@@ -295,6 +312,9 @@ exit_sysfs:
 static int lp8720_remove(struct i2c_client *client)
 {
 	lp8720_enable(client, 0);
+
+	regulator_put(regulator_vddio_vi);
+	regulator_put(regulator_vddio_mipi);
 
 	return	0;
 }	

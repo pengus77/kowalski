@@ -67,6 +67,9 @@ int touch_power_control(char* reg_id, bool on)
 	{            	
 		regulator_disable(device_regulator);
 	}
+
+	regulator_put(device_regulator);
+
 	return 0;
 }
 
