@@ -666,16 +666,7 @@ struct tegra_fb_info *tegra_fb_register(struct nvhost_device *ndev,
 		struct tegra_dc_mode *mode = &dc->mode;
 
 		if (dc->out->flags & TEGRA_DC_OUT_ONE_SHOT_MODE)
-#if defined (CONFIG_MACH_STAR)
-		{
-			//WAR rated_pclk is h_width_pixels*v_width_lines*60 in bssq and star project
-			info->var.pixclock = KHZ2PICOS(
-			((mode->h_back_porch + mode->h_front_porch + mode->h_sync_width + mode->h_active)*
-			(mode->v_back_porch + mode->v_front_porch + mode->v_sync_width + mode->v_active) * 60) / 1000);
-		}
-#else
 			info->var.pixclock = KHZ2PICOS(mode->rated_pclk / 1000);
-#endif
 		else
 			info->var.pixclock = KHZ2PICOS(mode->pclk / 1000);
 		info->var.left_margin = mode->h_back_porch;

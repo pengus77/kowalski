@@ -68,10 +68,6 @@ struct tegra_dc_out_ops {
 	void (*suspend)(struct tegra_dc *dc);
 	/* resume output.  dc clocks are on at this point */
 	void (*resume)(struct tegra_dc *dc);
-#if defined (CONFIG_MACH_STAR)
-	/* clear panel status for LG T20 */
-	void (*clear)(struct tegra_dc *dc);
-#endif
 };
 
 struct tegra_dc {
@@ -87,10 +83,6 @@ struct tegra_dc {
 	int				emc_clk_rate;
 	int				new_emc_clk_rate;
 	u32				shift_clk_div;
-
-#if defined (CONFIG_MACH_STAR)
-	int				disp_emc_enabled;
-#endif
 
 	bool				connected;
 	bool				enabled;

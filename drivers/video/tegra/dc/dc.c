@@ -78,10 +78,6 @@ static int no_vsync;
 
 static void _tegra_dc_controller_disable(struct tegra_dc *dc);
 
-#if defined (CONFIG_MACH_STAR)
-static int dc_lcd_first_reset_skip = 1;
-#endif
-
 module_param_named(no_vsync, no_vsync, int, S_IRUGO | S_IWUSR);
 
 static int use_dynamic_emc = 1;
@@ -972,20 +968,11 @@ static unsigned long tegra_dc_calc_win_bandwidth(struct tegra_dc *dc,
 		(win_use_v_filter(w) ? 2 : 1) * dfixed_trunc(w->w) / w->out_w *
 		(WIN_IS_TILED(w) ? tiled_windows_bw_multiplier : 1);
 
-#ifdef CONFIG_MACH_STAR
-/*
- * Assuming 60% efficiency: i.e. if we calculate we need 70MBps, we
- * will request 117MBps from EMC.
- */
-/* doulble for margin */
-	ret = ret * 2 + (17 * ret / 25);
-#else
 /*
  * Assuming 48% efficiency: i.e. if we calculate we need 70MBps, we
  * will request 147MBps from EMC.
  */
 	ret = ret * 2 + ret / 10;
-#endif
 
 	/* if overflowed */
 	if (ret > (1UL << 31))
@@ -1312,13 +1299,6 @@ int tegra_dc_update_windows(struct tegra_dc_win *windows[], int n)
 	tegra_dc_set_dynamic_emc(windows, n);
 
 	tegra_dc_writel(dc, update_mask << 8, DC_CMD_STATE_CONTROL);
-
-#if defined (CONFIG_MACH_STAR)
-	tegra_dc_writel(dc, update_mask, DC_CMD_STATE_CONTROL);
-
-	/* update EMC clock if calculated bandwidth has changed */
-	tegra_dc_program_bandwidth(dc);
-#endif
 
 	tegra_dc_writel(dc, FRAME_END_INT | V_BLANK_INT, DC_CMD_INT_STATUS);
 	if (!no_vsync) {
@@ -2256,13 +2236,11 @@ static void tegra_dc_trigger_windows(struct tegra_dc *dc)
 
 	if (completed) {
 		if (!dirty) {
-#ifndef CONFIG_MACH_STAR			
 			/* With the last completed window, go ahead
 			   and enable the vblank interrupt for nvsd. */
 			val = tegra_dc_readl(dc, DC_CMD_INT_MASK);
 			val |= V_BLANK_INT;
 			tegra_dc_writel(dc, val, DC_CMD_INT_MASK);
-#endif
 		}
 
 		wake_up(&dc->wq);
@@ -2275,10 +2253,8 @@ static void tegra_dc_one_shot_irq(struct tegra_dc *dc, unsigned long status)
 		/* Sync up windows. */
 		tegra_dc_trigger_windows(dc);
 
-#ifndef CONFIG_MACH_STAR		
 		/* Schedule any additional bottom-half vblank actvities. */
 		schedule_work(&dc->vblank_work);
-#endif
 	}
 
 	if (status & FRAME_END_INT) {
@@ -2291,11 +2267,8 @@ static void tegra_dc_one_shot_irq(struct tegra_dc *dc, unsigned long status)
 static void tegra_dc_continuous_irq(struct tegra_dc *dc, unsigned long status)
 {
 	if (status & V_BLANK_INT) {
-
-#ifndef CONFIG_MACH_STAR		
 		/* Schedule any additional bottom-half vblank actvities. */
 		schedule_work(&dc->vblank_work);
-#endif
 
 		/* All windows updated. Mask subsequent V_BLANK interrupts */
 		if (!tegra_dc_windows_are_dirty(dc)) {
@@ -2783,15 +2756,6 @@ void tegra_dc_disable(struct tegra_dc *dc)
 		if (!dc->suspended)
 			_tegra_dc_disable(dc);
 	}
-
-#if defined (CONFIG_MACH_STAR)	
-	// dsi power off when early suspend
-	if (dc->out->type == TEGRA_DC_OUT_CPU &&
-		dc->out && dc->out->postsuspend) {
-		dc->out->postsuspend();
-		msleep(100);
-	}
-#endif
 
 #ifdef CONFIG_SWITCH
 	switch_set_state(&dc->modeset_switch, 0);

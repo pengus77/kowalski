@@ -64,7 +64,6 @@ static ssize_t led_brightness_store(struct device *dev,
 	return ret;
 }
 
-#if defined(CONFIG_MACH_STAR)
 static ssize_t led_max_brightness_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
@@ -73,6 +72,7 @@ static ssize_t led_max_brightness_show(struct device *dev,
 	return sprintf(buf, "%u\n", led_cdev->max_brightness);
 }
 
+#if defined(CONFIG_MACH_STAR)
 static ssize_t led_br_maintain_on_store(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t size)
 {
