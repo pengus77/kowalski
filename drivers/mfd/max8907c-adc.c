@@ -498,15 +498,24 @@ int max8907c_adc_battery_read_volt(int *mili_volt)
 			MAX8907_RESET_CNFG_INT_REF_EN_SHIFT);
 
 	if (max8907c_reg_write(max8907c_i2c_power_client, MAX8907_RESET_CNFG, data) < 0)
+	{
+		mutex_unlock(&adc_en_lock);
 		return 0;
+	}
 
 	// Enable Internal voltage reference
 	if (max8907c_reg_write(max8907c_i2c_adc_client, MAX8907_TSC_CNFG1, 0x12) < 0)
+	{
+		mutex_unlock(&adc_en_lock);
 		return 0;
+	}
 
 	// Send command to powerup and the ADC perform a conversion
 	if (max8907c_reg_write(max8907c_i2c_adc_client, CONV_REG_VMBATT_ON, 0x00) < 0)
+	{
+		mutex_unlock(&adc_en_lock);
 		return 0;
+	}
 
 	// Get result
 	msb_data = max8907c_reg_read(max8907c_i2c_adc_client, MAX8907_VMBATT_MSB);
@@ -541,15 +550,24 @@ int max8907c_adc_battery_read_temp(unsigned int *mili_temp)
 			MAX8907_RESET_CNFG_INT_REF_EN_SHIFT);
 
 	if (max8907c_reg_write(max8907c_i2c_power_client, MAX8907_RESET_CNFG, data) < 0)
+	{
+		mutex_unlock(&adc_en_lock);
 		return 0;
+	}
 
 	// Enable Internal voltage reference
 	if (max8907c_reg_write(max8907c_i2c_adc_client, MAX8907_TSC_CNFG1, 0x12) < 0)
+	{
+		mutex_unlock(&adc_en_lock);
 		return 0;
+	}
 
 	// Send command to powerup and the ADC perform a conversion
 	if (max8907c_reg_write(max8907c_i2c_adc_client, CONV_REG_THM_ON, 0x00) < 0)
+	{
+		mutex_unlock(&adc_en_lock);
 		return 0;
+	}
 
 	// Get result
 	msb_data = max8907c_reg_read(max8907c_i2c_adc_client, MAX8907_THM_MSB);
