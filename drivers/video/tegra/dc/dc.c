@@ -39,11 +39,6 @@
 #include <linux/switch.h>
 #endif
 
-#ifdef CONFIG_MACH_STAR
-#include <linux/gpio.h>
-#include <../../../../arch/arm/mach-tegra/gpio-names.h>
-#include <../../../../arch/arm/mach-tegra/lge/star/include/lge/board-star.h>
-#endif
 
 #include <mach/clk.h>
 #include <mach/dc.h>
@@ -66,12 +61,6 @@
 #else
 /* ignore underflows when on simulation and fpga platform */
 #define ALL_UF_INT (0)
-#endif
-
-#if defined (CONFIG_PANICRPT)   
-extern int panicrpt_status_check(void);
-extern int panicrpt_ispanic(void);
-static bool start_panicrpt = false;
 #endif
 
 static int no_vsync;
@@ -100,15 +89,6 @@ static const struct {
 	/* Window C has only H filtering */
 	{ false, true  },
 };
-
-
-#if defined(CONFIG_PANICRPT) 
-void panicrpt_ready( bool flag )
-{
-	start_panicrpt = flag;
-}
-#endif
-
 static inline bool win_use_v_filter(const struct tegra_dc_win *win)
 {
 	return can_filter[win->idx].v &&
@@ -1287,15 +1267,6 @@ int tegra_dc_update_windows(struct tegra_dc_win *windows[], int n)
 		}
 	}
 
-#ifdef CONFIG_MACH_LGE
-#if defined (CONFIG_PANICRPT)   
-	if ( start_panicrpt ) {
-		if ( panicrpt_ispanic() && panicrpt_status_check()>0 )
-			return 0;
-	}
-#endif		 	
-#endif
-
 	tegra_dc_set_dynamic_emc(windows, n);
 
 	tegra_dc_writel(dc, update_mask << 8, DC_CMD_STATE_CONTROL);
@@ -1440,11 +1411,7 @@ void tegra_dc_setup_clk(struct tegra_dc *dc, struct clk *clk)
 {
 	int pclk;
 
-#if defined (CONFIG_MACH_STAR)
-	if ((dc->out->type == TEGRA_DC_OUT_RGB) || (dc->out->type == TEGRA_DC_OUT_CPU)) {
-#else
 	if (dc->out->type == TEGRA_DC_OUT_RGB) {
-#endif
 		unsigned long rate;
 		struct clk *parent_clk =
 			clk_get_sys(NULL, dc->out->parent_clk ? : "pll_p");
@@ -2001,12 +1968,6 @@ static void tegra_dc_set_out(struct tegra_dc *dc, struct tegra_dc_out *out)
 	case TEGRA_DC_OUT_RGB:
 		dc->out_ops = &tegra_dc_rgb_ops;
 		break;
-
-#if defined (CONFIG_MACH_STAR)
-	case TEGRA_DC_OUT_CPU:
-		dc->out_ops = &tegra_dc_cpu_ops;
-		break;
-#endif
 
 	case TEGRA_DC_OUT_HDMI:
 		dc->out_ops = &tegra_dc_hdmi_ops;

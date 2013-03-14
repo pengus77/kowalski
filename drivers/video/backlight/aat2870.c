@@ -64,10 +64,6 @@ struct aat2870_bl_driver_data *aat2870_bl_drvdata;
 // flag indicating ALS enable
 static bool als_enabled = false;
 
-#if defined (CONFIG_PANICRPT)    
-extern int panicrpt_ispanic (void);
-#endif /* CONFIG_PANICRPT */
-
 
 // AAT2870 register address and data
 struct aat2870_bl_command {
@@ -466,10 +462,6 @@ static int aat2870_bl_update_status(struct backlight_device *bd)
 	}
 
 
-#if defined (CONFIG_PANICRPT)    
-	if( panicrpt_ispanic() == 1)
-		goto out;
-#endif
 	dbg("props: brightness=%d, power=%d, state=%d\n",
 			bd->props.brightness, bd->props.power, bd->props.state);
 
@@ -1171,10 +1163,6 @@ static int aat2870_bl_suspend(struct i2c_client *client, pm_message_t state)
 	is_suspended = true;
 
 
-#if defined (CONFIG_PANICRPT)    
-	if( panicrpt_ispanic() == 1)
-		return 0;
-#endif
 	aat2870_bl_disable(bd);
 	return 0;
 }

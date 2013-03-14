@@ -896,7 +896,7 @@ static struct tegra_dc_out_pin star_dc_out_pins[] = {
 };
 
 static struct tegra_dc_out star_disp1_out = {
-	.type 		= TEGRA_DC_OUT_CPU,
+	.type 		= TEGRA_DC_OUT_RGB,
 	.flags		= TEGRA_DC_OUT_ONE_SHOT_MODE,
 
 	.align		= TEGRA_DC_ALIGN_LSB,

@@ -628,9 +628,6 @@ static size_t log_prefix(const char *p, unsigned int *level, char *special)
 	if (p[2] == '>') {
 		/* usual single digit level number or special char */
 		switch (p[1]) {
-                case 'B':   // boot
-                case 'W':   // wakeup
-                case 'S':   // start logging
 		case '0' ... '7':
 			lev = p[1] - '0';
 			break;

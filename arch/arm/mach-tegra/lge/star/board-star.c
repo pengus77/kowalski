@@ -176,7 +176,6 @@ static struct tegra_i2c_platform_data star_i2c1_platform_data = {
 	.scl_gpio		= {TEGRA_GPIO_PC4, 0},
 	.sda_gpio		= {TEGRA_GPIO_PC5, 0},
 	.arb_recovery = arb_lost_recovery,
-	.slave_addr = 0xFC,
 };
 
 static const struct tegra_pingroup_config i2c2_ddc = {
@@ -198,7 +197,6 @@ static struct tegra_i2c_platform_data star_i2c2_platform_data = {
 	.scl_gpio		= {0, TEGRA_GPIO_PT5},
 	.sda_gpio		= {0, TEGRA_GPIO_PT6},
 	.arb_recovery = arb_lost_recovery,
-	.slave_addr = 0xFC,
 };
 
 static struct tegra_i2c_platform_data star_i2c3_platform_data = {
@@ -208,7 +206,6 @@ static struct tegra_i2c_platform_data star_i2c3_platform_data = {
 	.scl_gpio		= {TEGRA_GPIO_PBB2, 0},
 	.sda_gpio		= {TEGRA_GPIO_PBB3, 0},
 	.arb_recovery = arb_lost_recovery,
-	.slave_addr = 0xFC,
 };
 
 static struct tegra_i2c_platform_data star_dvc_platform_data = {
@@ -231,7 +228,7 @@ struct platform_device star_gpioi2c_device = {
 
 static struct i2c_gpio_platform_data star_gpioi2c_platform_data = {
 	.udelay = 2,
-	.scl_is_output_only = 1,
+	.scl_is_output_only = 0,
 	.sda_pin = TEGRA_GPIO_PK4, 
 	.scl_pin = TEGRA_GPIO_PI7, 
 };
@@ -307,7 +304,7 @@ static void __init tegra_star_init(void)
 	star_touch_init();
 	star_misc_init();
 	star_kbc_init();
-	star_bt_rfkill(); 
+	star_bt_rfkill();
 	star_gps_init();
 	star_usb_init();
 #if defined(CONFIG_STAR_TOUCH_LED)

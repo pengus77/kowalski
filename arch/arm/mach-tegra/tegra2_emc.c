@@ -216,25 +216,6 @@ int tegra_emc_set_rate(unsigned long rate)
 	return 0;
 }
 
-#ifdef CONFIG_MACH_STAR
-#define TEGRA_EMC_MRW          0x00e8
-void tegra_emc_write_mrw(void)
-{
-	emc_writel(0x90000, TEGRA_EMC_MRW);
-	printk("Sending 0xB0 to TEGRA_EMC_MRW\n");
-	emc_writel(0x900B0, TEGRA_EMC_MRW);
-	printk("Sending 0xE0 to TEGRA_EMC_MRW\n");
-	emc_writel(0x900E0, TEGRA_EMC_MRW);
-	printk("Sending 0x90 to TEGRA_EMC_MRW\n");
-	emc_writel(0x90090, TEGRA_EMC_MRW);
-	/* Sending the test op code per Hynix FAE requested.
-	   0xBD - reducing self-refresh rate from 30 us to 20 us.
-	 */
-	printk("Sending 0xBD to TEGRA_EMC_MRW\n");
-	emc_writel(0x900BD, TEGRA_EMC_MRW);
-}
-#endif
-
 void tegra_init_emc(const struct tegra_emc_chip *chips, int chips_size)
 {
 	int i;
@@ -270,10 +251,6 @@ void tegra_init_emc(const struct tegra_emc_chip *chips, int chips_size)
 		chip_matched = i;
 		break;
 	}
-
-#ifdef CONFIG_MACH_STAR
-	tegra_emc_write_mrw(); /* set reflesh rate 20us */
-#endif
 
 	if (chip_matched >= 0) {
 		pr_info("%s: %s memory found\n", __func__,

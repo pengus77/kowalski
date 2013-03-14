@@ -196,7 +196,6 @@ static __initdata struct tegra_pingroup_config star_pinmux[] = {
 
 static struct tegra_gpio_table gpio_table[] = {
 	{ .gpio = TEGRA_GPIO_HP_DET,		.enable = true	},
-	{ .gpio = TEGRA_GPIO_SPKR_EN,		.enable = true	},
 };
 
 int __init star_pinmux_init(void)

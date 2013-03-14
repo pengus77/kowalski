@@ -137,12 +137,3 @@ config CM_BOOTLOADER_COMPAT
 	help
 	  Allow CM (and other custom builds) to run on the older (and 
           unlocked) bootloaders
-
-comment "Kernel Debug Selection"    	  	  
-
-config PANICRPT
-	bool "Enable Kernel Panic Dump Tool"
-	depends on MACH_STAR
-	default y
-	help
-	  If you want to enable kernel panic dump tool , then say Y

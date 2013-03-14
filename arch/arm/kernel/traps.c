@@ -35,6 +35,10 @@
 
 #include "signal.h"
 
+#if defined(CONFIG_MACH_LGE) && defined(CONFIG_MACH_STAR)
+#include "../arch/arm/mach-tegra/lge/star/include/lge/board-star-nv.h"
+#endif
+
 static const char *handler[]= { "prefetch abort", "data abort", "address exception", "interrupt" };
 
 void *vectors_page;
@@ -278,6 +282,10 @@ void die(const char *str, struct pt_regs *regs, int err)
 	bust_spinlocks(0);
 	add_taint(TAINT_DIE);
 	spin_unlock_irq(&die_lock);
+#if defined(CONFIG_MACH_LGE) && defined(CONFIG_MACH_STAR)
+	unsigned char bootcause[1] = {LGE_NVDATA_RESET_CAUSE_VAL_USER_RESET};
+	lge_nvdata_write(LGE_NVDATA_RESET_CAUSE_OFFSET, bootcause,1);
+#endif
 	oops_exit();
 
 	if (in_interrupt())

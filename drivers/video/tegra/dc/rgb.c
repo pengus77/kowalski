@@ -27,7 +27,9 @@ static const u32 tegra_dc_rgb_enable_partial_pintable[] = {
 	DC_COM_PIN_OUTPUT_ENABLE0,	0x00000000,
 	DC_COM_PIN_OUTPUT_ENABLE1,	0x00000000,
 	DC_COM_PIN_OUTPUT_ENABLE2,	0x00000000,
+#ifndef CONFIG_MACH_STAR
 	DC_COM_PIN_OUTPUT_ENABLE3,	0x00000000,
+#endif
 	DC_COM_PIN_OUTPUT_POLARITY0,	0x00000000,
 	DC_COM_PIN_OUTPUT_POLARITY2,	0x00000000,
 	DC_COM_PIN_OUTPUT_DATA0,	0x00000000,
@@ -40,7 +42,9 @@ static const u32 tegra_dc_rgb_enable_pintable[] = {
 	DC_COM_PIN_OUTPUT_ENABLE0,	0x00000000,
 	DC_COM_PIN_OUTPUT_ENABLE1,	0x00000000,
 	DC_COM_PIN_OUTPUT_ENABLE2,	0x00000000,
+#ifndef CONFIG_MACH_STAR
 	DC_COM_PIN_OUTPUT_ENABLE3,	0x00000000,
+#endif
 	DC_COM_PIN_OUTPUT_POLARITY0,	0x00000000,
 	DC_COM_PIN_OUTPUT_POLARITY1,	0x01000000,
 	DC_COM_PIN_OUTPUT_POLARITY2,	0x00000000,
@@ -63,9 +67,17 @@ static const u32 tegra_dc_rgb_enable_out_sel_pintable[] = {
 	   pin instead of the DE pin. */
 	DC_COM_PIN_OUTPUT_SELECT3,	0x00200000,
 #endif
+#if defined CONFIG_MACH_STAR
+	DC_COM_PIN_OUTPUT_SELECT4,	0x00200222,
+#else
 	DC_COM_PIN_OUTPUT_SELECT4,	0x00210222,
+#endif
 	DC_COM_PIN_OUTPUT_SELECT5,	0x00002200,
+#if defined CONFIG_MACH_STAR
+	DC_COM_PIN_OUTPUT_SELECT6,	0x00004000,
+#else
 	DC_COM_PIN_OUTPUT_SELECT6,	0x00020000,
+#endif
 };
 
 static const u32 tegra_dc_rgb_disable_pintable[] = {
@@ -90,16 +102,100 @@ static const u32 tegra_dc_rgb_disable_pintable[] = {
 	DC_COM_PIN_OUTPUT_SELECT6,	0x00000000,
 };
 
+#if defined CONFIG_MACH_STAR
+static void tegra_cpu_stop_dc_stream(struct tegra_dc *dc)
+{
+	tegra_dc_writel(dc, DISP_CTRL_MODE_STOP, DC_CMD_DISPLAY_COMMAND);
+	tegra_dc_writel(dc, 0, DC_DISP_DISP_WIN_OPTIONS);
+	tegra_dc_writel(dc, GENERAL_UPDATE, DC_CMD_STATE_CONTROL);
+	tegra_dc_writel(dc, GENERAL_ACT_REQ, DC_CMD_STATE_CONTROL);
+}
+
+#define S_TO_MS(x)			(1000 * (x))
+void tegra_cpu_stop_dc_stream_at_frame_end(struct tegra_dc *dc)
+{
+	int val;
+	long timeout;
+	u32 frame_period = DIV_ROUND_UP(S_TO_MS(1), 60);
+
+	/* stop dc */
+	tegra_cpu_stop_dc_stream(dc);
+
+	/* enable frame end interrupt */
+	val = tegra_dc_readl(dc, DC_CMD_INT_MASK);
+	val |= FRAME_END_INT;
+	tegra_dc_writel(dc, val, DC_CMD_INT_MASK);
+
+	/* wait for frame_end completion.
+	 * timeout is 2 frame duration to accomodate for
+	 * internal delay.
+	 */
+	timeout = wait_for_completion_interruptible_timeout(
+			&dc->frame_end_complete,
+			msecs_to_jiffies(2 * frame_period));
+
+	/* disable frame end interrupt */
+	val = tegra_dc_readl(dc, DC_CMD_INT_MASK);
+	val &= ~FRAME_END_INT;
+	tegra_dc_writel(dc, val, DC_CMD_INT_MASK);
+
+	if (timeout == 0)
+		printk(KERN_WARNING "DC doesn't stop at end of frame.\n");
+}
+#endif
+
 void tegra_dc_rgb_enable(struct tegra_dc *dc)
 {
 	int i;
 	u32 out_sel_pintable[ARRAY_SIZE(tegra_dc_rgb_enable_out_sel_pintable)];
+#if defined CONFIG_MACH_STAR
+	u32 val;
+
+	u32 h_width_pixels;
+	u32 v_width_lines;
+	u32 pixel_clk_hz;
+
+	tegra_dc_io_start(dc);
+#endif
 
 	tegra_dc_writel(dc, PW0_ENABLE | PW1_ENABLE | PW2_ENABLE | PW3_ENABLE |
 			PW4_ENABLE | PM0_ENABLE | PM1_ENABLE,
 			DC_CMD_DISPLAY_POWER_CONTROL);
 
+#if defined CONFIG_MACH_STAR
+	tegra_cpu_stop_dc_stream(dc);
+
+	tegra_dc_writel(dc, V_PULSE_1_ENABLE, DC_DISP_DISP_SIGNAL_OPTIONS0);
+	tegra_dc_writel(dc, PULSE_POLARITY_LOW, DC_DISP_V_PULSE1_CONTROL);
+	
+	tegra_dc_writel(dc, PULSE_END(1), DC_DISP_V_PULSE1_POSITION_A);
+	tegra_dc_writel(dc, 0, DC_DISP_V_PULSE1_POSITION_B);
+	tegra_dc_writel(dc, 0, DC_DISP_V_PULSE1_POSITION_C);
+	
+	tegra_dc_writel(dc, 0x131, DC_DISP_INIT_SEQ_CONTROL);
+	tegra_dc_writel(dc, 0x2c, DC_DISP_SPI_INIT_SEQ_DATA_A);
+	tegra_dc_writel(dc, 0, DC_DISP_SPI_INIT_SEQ_DATA_B);
+	tegra_dc_writel(dc, 0, DC_DISP_SPI_INIT_SEQ_DATA_C);
+	tegra_dc_writel(dc, 0x5000, DC_DISP_SPI_INIT_SEQ_DATA_D);
+
+	h_width_pixels = dc->mode.h_back_porch + dc->mode.h_front_porch +
+			dc->mode.h_sync_width + dc->mode.h_active;
+	v_width_lines = dc->mode.v_back_porch + dc->mode.v_front_porch +
+			dc->mode.v_sync_width + dc->mode.v_active;
+
+	if (dc->out->flags & TEGRA_DC_OUT_ONE_SHOT_MODE)
+	{
+		pixel_clk_hz = h_width_pixels * v_width_lines * 72;
+	}
+	else
+	{
+		pixel_clk_hz = h_width_pixels * v_width_lines * 60;
+	}
+	
+	dc->mode.pclk = pixel_clk_hz;
+#else
 	tegra_dc_writel(dc, DISP_CTRL_MODE_C_DISPLAY, DC_CMD_DISPLAY_COMMAND);
+#endif
 
 	if (dc->out->out_pins) {
 		tegra_dc_set_out_pin_polars(dc, dc->out->out_pins,
@@ -112,6 +208,7 @@ void tegra_dc_rgb_enable(struct tegra_dc *dc)
 	memcpy(out_sel_pintable, tegra_dc_rgb_enable_out_sel_pintable,
 		sizeof(tegra_dc_rgb_enable_out_sel_pintable));
 
+#ifndef CONFIG_MACH_STAR
 	if (dc->out && dc->out->out_sel_configs) {
 		u8 *out_sels = dc->out->out_sel_configs;
 		for (i = 0; i < dc->out->n_out_sel_configs; i++) {
@@ -142,12 +239,46 @@ void tegra_dc_rgb_enable(struct tegra_dc *dc)
 			}
 		}
 	}
+#endif
 
 	tegra_dc_write_table(dc, out_sel_pintable);
+
+#if defined CONFIG_MACH_STAR
+	if (dc->out->flags & TEGRA_DC_OUT_ONE_SHOT_MODE) {
+		/* disable LSPI/LCD_DE output */
+		val = PIN_OUTPUT_LSPI_OUTPUT_DIS;
+		tegra_dc_writel(dc, val, DC_COM_PIN_OUTPUT_ENABLE3);
+
+		/* enable MSF & set MSF polarity */
+		val = MSF_POLARITY_HIGH | MSF_ENABLE | MSF_LSPI;
+		tegra_dc_writel(dc, val, DC_CMD_DISPLAY_COMMAND_OPTION0);
+
+		// TE input enbale
+		/* enable LSPI/LCD_DE input */
+		val = PIN_INPUT_LSPI_INPUT_EN;
+		tegra_dc_writel(dc, val, DC_COM_PIN_INPUT_ENABLE3);
+
+		/* set non-continuous mode */
+		tegra_dc_writel(dc, DISP_CTRL_MODE_NC_DISPLAY,
+						DC_CMD_DISPLAY_COMMAND);
+
+		tegra_dc_writel(dc, GENERAL_UPDATE, DC_CMD_STATE_CONTROL);
+		tegra_dc_writel(dc, GENERAL_ACT_REQ | NC_HOST_TRIG,
+						DC_CMD_STATE_CONTROL);
+	}
+	else {
+		tegra_dc_writel(dc, DISP_CTRL_MODE_C_DISPLAY, DC_CMD_DISPLAY_COMMAND);
+	}
+	
+	tegra_dc_io_end(dc);
+#endif
 }
 
 void tegra_dc_rgb_disable(struct tegra_dc *dc)
 {
+#if defined CONFIG_MACH_STAR
+	tegra_cpu_stop_dc_stream_at_frame_end(dc);
+#endif
 	tegra_dc_writel(dc, 0x00000000, DC_CMD_DISPLAY_POWER_CONTROL);
 
 	tegra_dc_write_table(dc, tegra_dc_rgb_disable_pintable);

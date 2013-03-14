@@ -197,9 +197,6 @@ static inline unsigned long tegra_dc_get_default_emc_clk_rate(
 void tegra_dc_setup_clk(struct tegra_dc *dc, struct clk *clk);
 
 extern struct tegra_dc_out_ops tegra_dc_rgb_ops;
-#if defined (CONFIG_MACH_STAR)
-extern struct tegra_dc_out_ops tegra_dc_cpu_ops;
-#endif
 extern struct tegra_dc_out_ops tegra_dc_hdmi_ops;
 extern struct tegra_dc_out_ops tegra_dc_dsi_ops;
 
