@@ -70,39 +70,6 @@ static int __init tegra_hw_rev_setup(char *line)
 
 __setup("hw_rev=", tegra_hw_rev_setup);
 
-#if defined( CONFIG_STAR_VIBRATOR)
-#include <mach/vibrator.h>
-
-static struct pwm_vib_platform_data	star_vib_platform_data = {
-	.max_timeout		=	15000,
-	.active_low			=	0,
-	.initial_vibrate	=	0,
-	.pwm_id				=	0,
-	.period_ns			=	50000,
-	.duty_ns			=	5000,
-	.enable				=	TEGRA_GPIO_PU4,
-	.power				=	&device_power_control,
-};
-
-static struct platform_device star_vib_device = {
-	.name   =   "star_vib_name",
-	.id     =   -1,
-	.dev    =   {
-		.platform_data  = &star_vib_platform_data,
-	},
-};
-
-int __init star_vibrator_init(void)
-{
-	tegra_gpio_enable(TEGRA_GPIO_PU4);
-	tegra_gpio_disable(TEGRA_GPIO_PU3);
-
-	platform_device_register(&star_vib_device);
-
-	return	0;
-}
-#endif
-
 #if defined(CONFIG_STAR_HALL)
 struct star_hall_platform_data {
 	u32 gpio;

@@ -10,7 +10,7 @@
 #include <linux/interrupt.h>
 
 #include <linux/delay.h>
-#define HALL_DEBUG 0
+//#define HALL_DEBUG 0
 #ifdef HALL_DEBUG
 #define DBGHALL(args...) printk("[HALLIC]"args)
 #else
@@ -64,28 +64,9 @@ static ssize_t star_hall_onoff_show(struct device *dev, struct device_attribute 
 	sprintf(buf, "%d\n", (power_enabled == true));
 	return (ssize_t)(strlen(buf) + 1);
 }
-static ssize_t star_hall_onoff_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-{
-	u32 val = 0;
-	val = simple_strtoul(buf, NULL, 10);
-	if(val){
-		DBGHALL("Turn Hall IC on\n");
-		if(g_hall->power)
-			g_hall->power("vddio_sys", 1);
-		power_enabled = true;
-	}
-	else{
-		DBGHALL("Turn Hall IC off\n");
-		if(g_hall->power)
-			g_hall->power("vddio_sys", 0);
-
-		power_enabled = false;
-	}
-	return count;
-}
 
 static DEVICE_ATTR(sensing, 0666, star_hall_sensing_show, NULL);
-static DEVICE_ATTR(onoff, 0666, star_hall_onoff_show, star_hall_onoff_store);
+static DEVICE_ATTR(onoff, 0666, star_hall_onoff_show, NULL);
 
 static struct  attribute *star_hall_attributes[] = {
 	&dev_attr_sensing.attr,

@@ -82,7 +82,7 @@ NORET_TYPE void panic(const char * fmt, ...)
 	 */
 
 #if defined (CONFIG_MACH_STAR)
-	emg_max8952_shutdown();
+	//emg_max8952_shutdown();
 #endif
 
 	preempt_disable();

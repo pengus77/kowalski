@@ -273,16 +273,9 @@ const int gpio_to_pingroup[TEGRA_MAX_GPIO] = {
 #define PULLUPDOWN_REG_A       0xa0
 #define PULLUPDOWN_REG_NUM     5
 
-#if defined(CONFIG_MACH_STAR_DUMP_GPIO)
-u32 pinmux_reg[TRISTATE_REG_NUM + PIN_MUX_CTL_REG_NUM +
-                      PULLUPDOWN_REG_NUM +
-                      ARRAY_SIZE(tegra_soc_drive_pingroups)];
-#else
-
 static u32 pinmux_reg[TRISTATE_REG_NUM + PIN_MUX_CTL_REG_NUM +
 		      PULLUPDOWN_REG_NUM +
 		      ARRAY_SIZE(tegra_soc_drive_pingroups)];
-#endif
 
 static inline unsigned long pg_readl(unsigned long offset)
 {

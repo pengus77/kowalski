@@ -15,9 +15,9 @@
  */
 
 struct tegra_wm8994_platform_data {
-	const char *name;	//LGE_CHANGE_S [chahee.kim@lge.com] 2011-11-14 
-	int gpio_hook;		//LGE_CHANGE_S [chahee.kim@lge.com] 2011-11-14 
-	int gpio_ear_mic;	//LGE_CHANGE_S [chahee.kim@lge.com] 2011-11-14 
+	const char *name;
+	int gpio_hook;
+	int gpio_ear_mic;
 
 	int gpio_spkr_en;
 	int gpio_hp_det;

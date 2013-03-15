@@ -317,8 +317,6 @@ static struct i2c_driver LGE_touch_driver = {
 
 static int __devinit LGE_touch_init(void)
 {
-	DEBUG_MSG(M, "[TOUCH] LGE_touch_init\n");
-
 	return i2c_add_driver(&LGE_touch_driver);
 }
 

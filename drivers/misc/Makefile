@@ -66,6 +66,5 @@ obj-$(CONFIG_TEGRA_CRYPTO_DEV)	+= tegra-cryptodev.o
 obj-$(CONFIG_TEGRA_BB_SUPPORT)	+= tegra-baseband/
 obj-$(CONFIG_MAX1749_VIBRATOR)	+= max1749.o
 obj-$(CONFIG_STAR_TOUCH_LED)	+= star_led.o
-obj-$(CONFIG_STAR_VIBRATOR)	+= vibrator.o
 obj-$(CONFIG_TSPDRV)            += tspdrv/
 obj-$(CONFIG_STAR_HALL)		+= bu52031nvx.o

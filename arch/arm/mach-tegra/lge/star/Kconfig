@@ -99,11 +99,6 @@ config TSPDRV
 	help
 	   Immersion TSP Driver.
 	
-config STAR_VIBRATOR
-	bool "Star PWM Vibrator"
-	help
-	  Support for Star PWM Vibrator Driver.
-
 config TEGRA_CPU_FREQ_LOCK
     bool "tegra cpu freq lock"
     default n

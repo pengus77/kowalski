@@ -115,9 +115,7 @@ static long dw9712_ioctl(struct file *file,
 				break;
 			}
 		case DW9712_IOCTL_SET_POSITION:
-			//		mutex_lock(&dw9712_lock);
 			ret = dw9712_set_position(info, (u32) arg);
-			//		mutex_unlock(&dw9712_lock);
 			return ret;
 
 		default:

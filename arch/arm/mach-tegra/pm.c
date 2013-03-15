@@ -43,9 +43,6 @@
 #include <linux/memblock.h>
 #include <linux/console.h>
 #include <linux/pm_qos_params.h>
-#if defined (CONFIG_MACH_STAR)
-#include <linux/tegra_audio.h>
-#endif
 
 #include <asm/cacheflush.h>
 #include <asm/cpu_pm.h>
@@ -848,28 +845,12 @@ static void tegra_suspend_check_pwr_stats(void)
 int tegra_suspend_dram(enum tegra_suspend_mode mode, unsigned int flags)
 {
 	int err = 0;
-#if defined (CONFIG_MACH_STAR)	
-	u32 scratch37 = 0xDEADBEEF;
-#endif
 
 	if (WARN_ON(mode <= TEGRA_SUSPEND_NONE ||
 		mode >= TEGRA_MAX_SUSPEND_MODE)) {
 		err = -ENXIO;
 		goto fail;
 	}
-
-#if defined (CONFIG_MACH_STAR)	
-	if (tegra_is_voice_call_active()) {
-		u32 reg;
-
-		/* backup the current value of scratch37 */
-		scratch37 = readl(pmc + PMC_SCRATCH37);
-
-		/* If voice call is active, set a flag in PMC_SCRATCH37 */
-		reg = TEGRA_POWER_LP1_AUDIO;
-		pmc_32kwritel(reg, PMC_SCRATCH37);
-	}
-#endif
 
 	if ((mode == TEGRA_SUSPEND_LP0) && !tegra_pm_irq_lp0_allowed()) {
 		pr_info("LP0 not used due to unsupported wakeup events\n");
@@ -925,12 +906,6 @@ int tegra_suspend_dram(enum tegra_suspend_mode mode, unsigned int flags)
 		tegra_lp0_resume_mc();
 	} else if (mode == TEGRA_SUSPEND_LP1)
 		*iram_cpu_lp1_mask = 0;
-
-#if defined (CONFIG_MACH_STAR)	
-	/* if scratch37 was clobbered during LP1, restore it */
-	if (scratch37 != 0xDEADBEEF)
-		pmc_32kwritel(scratch37, PMC_SCRATCH37);
-#endif
 
 	restore_cpu_complex(flags);
 
@@ -1345,25 +1320,13 @@ static int tegra_debug_uart_syscore_init(void)
 arch_initcall(tegra_debug_uart_syscore_init);
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
-#if defined (CONFIG_MACH_STAR)
-static struct clk *clk_wake;
-#endif
-
 static void pm_early_suspend(struct early_suspend *h)
 {
-#if defined (CONFIG_MACH_STAR)	
-	if (clk_wake)
-		clk_disable(clk_wake);
-#endif
 	pm_qos_update_request(&awake_cpu_freq_req, PM_QOS_DEFAULT_VALUE);
 }
 
 static void pm_late_resume(struct early_suspend *h)
 {
-#if defined (CONFIG_MACH_STAR)
-	if (clk_wake)
-		clk_enable(clk_wake);
-#endif
 	pm_qos_update_request(&awake_cpu_freq_req, (s32)AWAKE_CPU_FREQ_MIN);
 }
 
@@ -1374,9 +1337,6 @@ static struct early_suspend pm_early_suspender = {
 
 static int pm_init_wake_behavior(void)
 {
-#if defined (CONFIG_MACH_STAR)
-	clk_wake = tegra_get_clock_by_name("wake.sclk");
-#endif
 	register_early_suspend(&pm_early_suspender);
 	return 0;
 }

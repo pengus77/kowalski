@@ -1083,9 +1083,6 @@ static void avp_uninit(struct tegra_avp_info *avp)
 	struct rb_node *n;
 	struct remote_info *rinfo;
 
-#if defined(CONFIG_MACH_STAR)
-	unsigned int reg;
-#endif
 	spin_lock_irqsave(&avp->state_lock, flags);
 	avp->initialized = false;
 	avp->shutdown = true;
@@ -1122,19 +1119,6 @@ static void avp_uninit(struct tegra_avp_info *avp)
 	avp->shutdown = false;
 	smp_wmb();
 	pr_info("%s: avp teardown done\n", __func__);
-
-#if defined(CONFIG_MACH_STAR)
-#define TIMER_TMR_PCR_0	4
-	// turn off the periodic interrupt and the timer temporarily
-	reg = readl(IO_ADDRESS(TEGRA_TMR2_BASE));
-	reg &= ~(0xC0000000);
-	writel( reg, IO_ADDRESS(TEGRA_TMR2_BASE));
-	
-	/* write a 1 to the intr_clr field to clear the interrupt */
-	reg = 0x40000000;
-	writel( reg, IO_ADDRESS(TEGRA_TMR2_BASE + TIMER_TMR_PCR_0));
-#undef	TIMER_TMR_PCR_0
-#endif
 }
 
 /* returns the remote lib handle in lib->handle */

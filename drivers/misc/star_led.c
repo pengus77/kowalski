@@ -74,13 +74,11 @@ static void star_led_set(struct led_classdev *led_cdev,
 	struct max8907c_led *led = to_max8907c_led(led_cdev);
 	unsigned long flags;
 
-// MOBII_S [shhong@mobii.co.kr] 2012-06-25: Add LED Retain Function.
 #if defined(CONFIG_MACH_STAR)
 	if(led_cdev->br_maintain_trigger == 1) {
 		return;
 	}
 #endif
-// MOBII_E [shhong@mobii.co.kr] 2012-06-25: Add LED Retain Function.
 
 	spin_lock_irqsave(&led->value_lock, flags);
 	led->value = value;
@@ -137,8 +135,7 @@ static int star_led_probe(struct platform_device *pdev)
 	}
 
 	led->cdev.brightness_set = star_led_set;
-	//led->cdev.default_trigger = pdata->default_trigger;	
-		/* timer, heartbeat, backlight, default-on */
+	/* timer, heartbeat, backlight, default-on */
 	led->cdev.name = pdev->name;
 	led->cdev.flags |= LED_CORE_SUSPENDRESUME;
 
@@ -154,6 +151,7 @@ static int star_led_probe(struct platform_device *pdev)
 	
 	if (ret < 0){
 		dev_err(&pdev, "led_classdev_register failed\n");
+		regulator_put(led->isink);
 		kfree(led);
 		return ret;
 	}
@@ -196,4 +194,3 @@ MODULE_AUTHOR("Sungyel Bae <sungyel.bae@lge.com>");
 MODULE_DESCRIPTION("star led driver");
 MODULE_LICENSE("GPL");
 MODULE_ALIAS("platform:star_led");
-

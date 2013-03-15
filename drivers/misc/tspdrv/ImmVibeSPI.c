@@ -167,13 +167,11 @@ IMMVIBESPIAPI VibeStatus ImmVibeSPI_ForceOut_AmpEnable(VibeUInt8 nActuatorIndex)
 
 
 /* Called at initialization time to set PWM freq, disable amp, etc... */
-IMMVIBESPIAPI VibeStatus ImmVibeSPI_ForceOut_Initialize( void)
+IMMVIBESPIAPI VibeStatus ImmVibeSPI_ForceOut_Initialize(void)
 {
 	int ret = 0;
 
 	DbgOut(( "[ImmVibeSPI] : ImmVibeSPI_ForceOut_Initialize\n" ));
-
-//	g_bAmpEnabled = true;   /* to force ImmVibeSPI_ForceOut_AmpDisable disabling the amp */
 
 	ret = gpio_request(nv_vibe_gpio_en, "Nv Vibrator Enable");
 	if (ret < 0) {
@@ -184,11 +182,7 @@ IMMVIBESPIAPI VibeStatus ImmVibeSPI_ForceOut_Initialize( void)
 
 	gpio_direction_output(nv_vibe_gpio_en, 0);
 
-#if defined(CONFIG_LU6500)
-	nv_vib_pwm	=	pwm_request(0, "vibrator"); 	
-#else
 	nv_vib_pwm	=	pwm_request(3, "vibrator"); 	
-#endif
 	if (IS_ERR(nv_vib_pwm)) {
 		DbgOut(( "[ImmVibeSPI] : unable to request PWM for vibrator\n" ));
 		nv_vib_pwm = NULL;
@@ -198,7 +192,6 @@ IMMVIBESPIAPI VibeStatus ImmVibeSPI_ForceOut_Initialize( void)
 		DbgOut(( "[ImmVibeSPI] : got pwm for vibrator\n" ));
 	}
 
-	//   	ImmVibeSPI_ForceOut_AmpDisable( 0 );	
 	gpio_set_value(nv_vibe_gpio_en, 0);
 	pwm_disable(nv_vib_pwm);
 
@@ -219,7 +212,7 @@ IMMVIBESPIAPI VibeStatus ImmVibeSPI_ForceOut_Terminate( void )
 	return VIBE_S_SUCCESS;
 }
 
-bool bInTestMode = 0; /* 20110125 jiwon.seo@lge.com for ELT vibrator */
+bool bInTestMode = 0; /* for ELT vibrator */
 
 /*
  ** Called by the real-time loop to set PWM duty cycle
@@ -299,4 +292,3 @@ IMMVIBESPIAPI VibeStatus ImmVibeSPI_Device_GetName( VibeUInt8 nActuatorIndex, ch
 {
 	return VIBE_S_SUCCESS;
 }
-

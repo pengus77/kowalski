@@ -22,7 +22,8 @@
 #include <linux/regulator/machine.h>
 #include <linux/mfd/max8907c.h>
 #include <linux/regulator/max8907c-regulator.h>
-#include <linux/regulator/max8952r.h>
+//#include <linux/regulator/max8952r.h>
+#include <linux/regulator/max8952.h>
 #include <linux/gpio.h>
 #include <linux/io.h>
 #include <mach/iomap.h>
@@ -320,57 +321,30 @@ static struct max8907c_platform_data max8907c_pdata = {
 	.irq_base = TEGRA_NR_IRQS,
 };
 
-static struct regulator_consumer_supply max8952_MODE0_supply[] = {
-};
+static struct regulator_consumer_supply max8952_consumer =
+REGULATOR_SUPPLY("vdd_cpu", NULL);
 
-static struct regulator_consumer_supply max8952_MODE1_supply[] = {      
-#if defined( CONFIG_MACH_STAR) && defined(CONFIG_MACH_STAR_SU660)
-	REGULATOR_SUPPLY("vdd_cpu", NULL),	
-#endif	
-};
+static struct max8952_platform_data max8952_pdata __initdata = {
+	.gpio_vid0      = TEGRA_GPIO_PAA0,
+	.gpio_vid1      = TEGRA_GPIO_PAA1,
+	.gpio_en        = -1, /* Not controllable, set "Always High" */
+	.default_mode   = 1, /* vid0 = 0, vid1 = 0 */
+	.dvs_mode       = { 48, 32, 28, 18 }, /* 1.25, 1.20, 1.05, 0.95V */
+	.sync_freq      = 0, /* default: fastest */
+	.ramp_speed     = 0, /* default: fastest */
 
-static struct regulator_consumer_supply max8952_MODE2_supply[] = {
-};
-
-static struct regulator_consumer_supply max8952_MODE3_supply[] = {
-};
-
-#define MAX8952_REGULATOR_INIT(_id, _minmv, _maxmv)				\
-	static struct regulator_init_data max8952_##_id##_data = {		\
-		.constraints = {						\
-			.min_uV = (_minmv),					\
-			.max_uV = (_maxmv),					\
-			.valid_modes_mask = (REGULATOR_MODE_NORMAL |		\
-					REGULATOR_MODE_STANDBY),		\
-			.valid_ops_mask = (REGULATOR_CHANGE_MODE |		\
-					REGULATOR_CHANGE_STATUS |		\
-					REGULATOR_CHANGE_VOLTAGE),		\
-		},								\
-		.num_consumer_supplies = ARRAY_SIZE(max8952_##_id##_supply),	\
-		.consumer_supplies = max8952_##_id##_supply,			\
-	};									\
-static struct platform_device max8952_##_id##_device = {			\
-	.id	= MAX8952_##_id,						\
-	.dev	= {								\
-		.platform_data = &max8952_##_id##_data,				\
-	},									\
-}
-
-MAX8952_REGULATOR_INIT(MODE0, 770000, 1400000);
-MAX8952_REGULATOR_INIT(MODE1, 770000, 1400000);
-MAX8952_REGULATOR_INIT(MODE2, 770000, 1400000);
-MAX8952_REGULATOR_INIT(MODE3, 770000, 1400000);
-
-static struct platform_device *bssq_max8952_power_devices[] = {
-	&max8952_MODE0_device,
-	&max8952_MODE1_device,
-	&max8952_MODE2_device,
-	&max8952_MODE3_device,
-};
-
-static struct max8952_platform_data max8952_pdata = {
-	.num_subdevs = ARRAY_SIZE(bssq_max8952_power_devices),
-	.subdevs = bssq_max8952_power_devices,
+	.reg_data       = {
+		.constraints    = {
+			.name           = "VDD_CPU_1.2V",
+			.min_uV         = 770000,
+			.max_uV         = 1400000,
+			.valid_ops_mask = REGULATOR_CHANGE_VOLTAGE,
+			.always_on      = 1,
+			.boot_on        = 1,
+		},
+		.num_consumer_supplies  = 1,
+		.consumer_supplies      = &max8952_consumer,
+	},
 };
 
 static struct i2c_board_info __initdata star_regulators[] = {

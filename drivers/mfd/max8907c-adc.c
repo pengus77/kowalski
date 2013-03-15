@@ -22,102 +22,6 @@ static struct i2c_client *max8907c_i2c_power_client = NULL;
 struct mutex adc_en_lock;
 struct mutex adc_en_temp_lock;
 
-/* Path => /sys/devices/platform/tegra-i2c.3/i2c-4/4-003c/max8907c-adc */
-#if defined(CONFIG_MACH_STAR)
-static ssize_t pmic_adc_test(struct device *dev, struct device_attribute *attr, char *buf)
-{
-	int read;
-	int ret;
-	max8907c_adc_read_aux2(&read);
-	ret = sprintf(buf,"========> MAX89007c ADC aux2 read: %d\n", read);
-	return ret;
-}
-static DEVICE_ATTR(pmic_adc, S_IRUGO | S_IWUSR | S_IWOTH | S_IXOTH, pmic_adc_test, NULL);
-#endif
-
-#if defined (CONFIG_MACH_BOSE_ATT)
-/**
- * max8907c_adc_read_aux2 - Return ADC value for aux2
- *
- * Will return the ADC value of AUX2 port of max8907c.
- * ADC function converts 0.0V ~ 2.5V to 12bit digital value, 
- * which ranges from 0 ~ 4095(0xfff).
- *
- *  (return value) = (ADC read) * 2500 / 0xfff   
- *
- * range 0 ~ 2500 mV
- */
-int max8907c_adc_read_aux1(int *aux1value)
-{
-	u32 tmp;
-	int msb, lsb;
-	int ret;
-
-	if (WARN(aux1value == NULL, "%s() aux1value is null\n", __func__))
-		return -ENXIO;
-
-	*aux1value = 0;
-
-	mutex_lock(&adc_en_lock);
-
-	/* Enable ADCREF by setting the INT_REF_EN bit in the RESET_CNFG register */
-	ret = max8907c_set_bits(max8907c_i2c_power_client, MAX8907C_REG_RESET_CNFG, 0x01, 0x01);
-	if (ret < 0) {
-		pr_err("%s() failed writing on register %x returned %d\n", __func__, MAX8907C_REG_RESET_CNFG, ret);
-		goto error;
-	}
-
-	/* Enable internal voltage reference. 
-	 * Write 0x12 to MAX8907_TSC_CNFG1 to turn on internal reference. */
-	ret = max8907c_reg_write(max8907c_i2c_adc_client, MAX8907_TSC_CNFG1, 0x12);
-	if (ret < 0) {
-		pr_err("%s() failed writing on register %x returned %d\n", __func__, MAX8907_TSC_CNFG1, ret);
-		goto error;
-	}
-
-	/* Send MAX8907_ADC_CMD_AUX2M_OFF command to powerup and the ADC and perform a conversion. */
-	ret = max8907c_send_cmd(max8907c_i2c_adc_client, MAX8907_ADC_CMD_AUX1M_OFF);
-	if (ret < 0) {
-		pr_err("%s() failed send command %x returned %d\n", __func__, MAX8907_ADC_CMD_AUX1M_OFF, ret);
-		goto error;
-	}
-
-#ifndef	CONFIG_MACH_STAR
-	/* Turn off the internal reference. Write 0x11 to register MAX8907_TSC_CNFG1 */
-	ret = max8907c_reg_write(max8907c_i2c_adc_client, MAX8907_TSC_CNFG1, 0x11);
-	if (ret < 0) {
-		pr_err("%s() failed writing on register %x returned %d\n", __func__, MAX8907_TSC_CNFG1, ret);
-		goto error;
-	}
-	udelay(300);
-#endif
-
-	/* Read ADC result. */
-	msb = max8907c_reg_read(max8907c_i2c_adc_client, MAX8907_ADC_RES_AUX1_MSB);
-	lsb = max8907c_reg_read(max8907c_i2c_adc_client, MAX8907_ADC_RES_AUX1_LSB);
-
-#ifndef	CONFIG_MACH_STAR
-	/* Disable ADCREF by setting the INT_REF_EN bit 0. in the RESET_CNFG register */
-	ret = max8907c_set_bits(max8907c_i2c_power_client, MAX8907C_REG_RESET_CNFG, 0x01, 0x00);
-	if (ret < 0) {
-		pr_err("%s() failed writing on register %x returned %d\n", __func__, MAX8907C_REG_RESET_CNFG, ret);
-		goto error;
-	}
-#endif
-
-	mutex_unlock(&adc_en_lock);
-
-	/* Convert the result value to mV. */
-	*aux1value = ((msb << 4)|(lsb >> 4));
-
-	return 0;
-error:
-	mutex_unlock(&adc_en_lock);
-	return ret;
-}
-#endif
-
-
 
 /**
  * max8907c_adc_read_aux2 - Return ADC value for aux2
@@ -285,7 +189,6 @@ EXPORT_SYMBOL(max8907c_adc_read_volt);
 int max8907c_adc_read_temp(unsigned int *mili_temp)
 {
 	u32 tmp;
-	//	int msb, lsb;	
 	unsigned char msb, lsb;
 	int ret;
 
@@ -365,7 +268,6 @@ EXPORT_SYMBOL(max8907c_adc_read_temp);
 u32 max8907c_adc_read_hook_adc(void)
 {
 	u32 tmp;
-	//	int msb, lsb;	
 	unsigned char msb, lsb;
 	int ret;
 
@@ -577,7 +479,6 @@ int max8907c_adc_battery_read_temp(unsigned int *mili_temp)
 
 	btemp = btempdata = (msb_data << 4) | (lsb_data >> 4) ;
 
-
 	*mili_temp = btemp;
 	return 0;
 }
@@ -623,18 +524,10 @@ static int __devinit max8907c_adc_probe(struct platform_device *pdev)
 	max8907c_reg_read(max8907c_i2c_adc_client, MAX8907_ADC_ACQ_CNFG2);
 	max8907c_reg_read(max8907c_i2c_adc_client, MAX8907_ADC_SCHED);
 	/* Set ADC reading environment. */
-#if defined (CONFIG_MACH_BOSE_ATT)
-	max8907c_set_bits(max8907c_i2c_adc_client, MAX8907_ADC_RES_CNFG1, 0xC0, 0x00);
-	max8907c_set_bits(max8907c_i2c_adc_client, MAX8907_ADC_AVG_CNFG1, 0xC0, 0xC0);
-	max8907c_set_bits(max8907c_i2c_adc_client, MAX8907_ADC_ACQ_CNFG1, 0xA0, 0xA0);
-	max8907c_set_bits(max8907c_i2c_adc_client, MAX8907_ADC_SCHED, 0x03, 0x01);
-
-#else
 	max8907c_set_bits(max8907c_i2c_adc_client, MAX8907_ADC_RES_CNFG1, 0x40, 0x00);
 	max8907c_set_bits(max8907c_i2c_adc_client, MAX8907_ADC_AVG_CNFG1, 0x40, 0x40);
 	max8907c_set_bits(max8907c_i2c_adc_client, MAX8907_ADC_ACQ_CNFG1, 0x20, 0x20);
 	max8907c_set_bits(max8907c_i2c_adc_client, MAX8907_ADC_SCHED, 0x03, 0x01);
-#endif
 
 	pr_info("max8907c_adc_probe ok\n");
 	return 0;

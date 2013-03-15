@@ -358,12 +358,10 @@ static struct i2c_driver gp2a_opt_driver = {
 };
 
 static int __init gp2a_opt_init(void) {
-	printk(KERN_INFO "enter %s\n", __func__);
 	return i2c_add_driver(&gp2a_opt_driver);
 }
 
 static void __exit gp2a_opt_exit(void) {
-	printk(KERN_INFO "enter %s\n", __func__);
 	i2c_del_driver(&gp2a_opt_driver);
 }
 
