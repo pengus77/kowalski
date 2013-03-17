@@ -71,6 +71,8 @@ static int star_wifi_set_carddetect(int val)
 
 static int star_wifi_power(int on)
 {
+	pr_debug("%s: %d\n", __func__, on);
+
 	if (on)
 		clk_enable(wifi_32k_clk);
 	else
@@ -116,7 +118,6 @@ static struct resource sdhci_resource0[] = {
 	},
 };
 
-
 static struct resource sdhci_resource2[] = {
 	[0] = {
 		.start  = INT_SDMMC3,
@@ -143,7 +144,7 @@ static struct resource sdhci_resource3[] = {
 	},
 };
 
-static struct embedded_sdio_data embedded_sdio_data1 = {
+static struct embedded_sdio_data embedded_sdio_data0 = {
 	.cccr   = {
 		.sdio_vsn       = 2,
 		.multi_block    = 1,
@@ -161,8 +162,8 @@ static struct embedded_sdio_data embedded_sdio_data1 = {
 static struct tegra_sdhci_platform_data tegra_sdhci_platform_data0 = {
 	.mmc_data = {
 		.register_status_notify	= star_wifi_status_register,
-		.embedded_sdio = &embedded_sdio_data1,
-		.built_in = 0,
+		.embedded_sdio = &embedded_sdio_data0,
+		.built_in = 1,
 	},
 	.cd_gpio = -1,
 	.wp_gpio = -1,
@@ -322,7 +323,6 @@ static int tegra_get_partition_info_by_name(
 				return -1;
 			Ptr = End+1;
 			*pSectorSize = Strtoull(Ptr, &End, 16);
-			printk(KERN_DEBUG "tegra_get_partition_info_by_name: %s: pSectorStart: %d, pSectorLength: %d, pSectorSize: %d\n", PartName, (int) *pSectorStart, (int) *pSectorLength, (int) *pSectorSize);
 			if (*End!=',' && *End!=' ' && *End)
 				return -1;
 			return 0;
@@ -369,14 +369,9 @@ static int __init star_microsd_init(void)
 
 int __init star_sdhci_init(void)
 {
-	int ret;
-
 	star_emmc_init();
 	star_microsd_init();
-	printk(KERN_DEBUG "checking entering sdhci");
-
 	star_wifi_init();
-	printk(KERN_DEBUG "checking out of sdhci");
 
 	return 0;
 }

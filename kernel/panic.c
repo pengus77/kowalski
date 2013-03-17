@@ -63,11 +63,6 @@ EXPORT_SYMBOL(panic_blink);
  *
  *	This function never returns.
  */
-
-#if defined (CONFIG_MACH_STAR)
-extern int emg_max8952_shutdown(void);
-#endif
-
 NORET_TYPE void panic(const char * fmt, ...)
 {
 	static char buf[1024];
@@ -80,11 +75,6 @@ NORET_TYPE void panic(const char * fmt, ...)
 	 * not have preempt disabled. Some functions called from here want
 	 * preempt to be disabled. No point enabling it later though...
 	 */
-
-#if defined (CONFIG_MACH_STAR)
-	//emg_max8952_shutdown();
-#endif
-
 	preempt_disable();
 
 	console_verbose();
