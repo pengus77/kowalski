@@ -623,19 +623,11 @@ static void tegra_gpio_resume(void)
 	local_irq_restore(flags);
 }
 
-#if defined(CONFIG_MACH_STAR_DUMP_GPIO)
-extern char gpio_regs_buf_suspend[PAGE_SIZE];
-#endif
-
 static int tegra_gpio_suspend(void)
 {
 	unsigned long flags;
 	int b;
 	int p;
-
-#if defined(CONFIG_MACH_STAR_DUMP_GPIO)
-        ssize_t count = 0;
-#endif
 
 #if defined (CONFIG_MACH_STAR)	
 	if (tegra_get_current_suspend_mode() != TEGRA_SUSPEND_LP0)
@@ -654,16 +646,10 @@ static int tegra_gpio_suspend(void)
 			bank->int_enb[p] = __raw_readl(GPIO_INT_ENB(gpio));
 			bank->int_lvl[p] = __raw_readl(GPIO_INT_LVL(gpio));
 		}
-#if defined(CONFIG_MACH_STAR_DUMP_GPIO)
-		count += snprintf(gpio_regs_buf_suspend + count,
-				PAGE_SIZE - count,
-				"%4d:%4d %3x %2x %3x\n", b, p,
-				bank->cnf[p], bank->oe[p], bank->out[p]);
-#endif
 	}
 
 #if defined(CONFIG_MACH_STAR)
-	pr_info("\n[HAVE2RUN] <<< Suspend GPIO Setting value (before) [END] >>>  \n");
+	pr_debug("\n[HAVE2RUN] <<< Suspend GPIO Setting value (before) [END] >>>  \n");
 	for (b=0; b<ARRAY_SIZE(tegra_sleep_gpio_banks); b++) {
 		struct tegra_gpio_bank *bank = &tegra_sleep_gpio_banks[b];
 
@@ -685,26 +671,26 @@ static int tegra_gpio_suspend(void)
 			__raw_writel(bank->int_lvl[p], GPIO_INT_LVL(gpio));
 			__raw_writel(bank->int_enb[p], GPIO_INT_ENB(gpio));
 #if defined(SLEEP_GPIO_LOG)
-			pr_info("%d:%d %02x %02x %02x %02x %06x\n", b, p, bank->cnf[p], bank->out[p],
+			pr_debug("%d:%d %02x %02x %02x %02x %06x\n", b, p, bank->cnf[p], bank->out[p],
 					bank->oe[p], bank->int_enb[p], bank->int_lvl[p]);
 #endif
 		}
 	}
 
-	pr_info("[HAVE2RUN] <<< Suspend GPIO Setting value (after) [START] >>>  \n");
+	pr_debug("[HAVE2RUN] <<< Suspend GPIO Setting value (after) [START] >>>  \n");
 #if defined(SLEEP_GPIO_LOG)
 	for (b=0; b<ARRAY_SIZE(tegra_gpio_banks); b++) {
 		struct tegra_gpio_bank *bank = &tegra_gpio_banks[b];
 
 		for (p=0; p<ARRAY_SIZE(bank->oe); p++) {
 			unsigned int gpio = (b<<5) | (p<<3);
-			pr_info("%d:%d %02x %02x %02x %02x %06x\n", b, p, __raw_readl(GPIO_CNF(gpio)),
+			pr_debug("%d:%d %02x %02x %02x %02x %06x\n", b, p, __raw_readl(GPIO_CNF(gpio)),
 					__raw_readl(GPIO_OUT(gpio)), __raw_readl(GPIO_OE(gpio)), __raw_readl(GPIO_INT_ENB(gpio)),
 					__raw_readl(GPIO_INT_LVL(gpio)) );
 		}
 	}
 #endif
-	pr_info("\n[POWER] <<< Suspend GPIO Setting value (after) [END] >>>  \n");
+	pr_debug("\n[POWER] <<< Suspend GPIO Setting value (after) [END] >>>  \n");
 #endif
 	local_irq_restore(flags);
 

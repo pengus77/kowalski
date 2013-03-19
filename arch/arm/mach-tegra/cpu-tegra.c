@@ -592,14 +592,10 @@ void tegra_cpu_lock_speed(unsigned long min_rate, unsigned long max_rate, int ti
 
 	is_cpufreq_locked = true;
 	tegra_update_cpu_speed(tegra_getspeed(0));
-//20111006 calvin.hwang@lge.com Camsensor sync with X2 [S]
 
 	// reset when it gets new time duration. then set to new one.
 	hrtimer_cancel(&cpulock_timer);
 	if (timeout_ms) {
-		//hrtimer_cancel(&cpulock_timer);
-//20111006 calvin.hwang@lge.com Camsensor sync with X2 [E]
-
 		hrtimer_start(&cpulock_timer,
 				ns_to_ktime((u64)timeout_ms * NSEC_PER_MSEC),
 				HRTIMER_MODE_REL);
@@ -618,9 +614,9 @@ void tegra_cpu_unlock_speed(void)
 	min_cpulock_freq = 0;
 
 	if (sku_id == 0x17)
-		max_cpulock_freq = 1200000; //AP25
+		max_cpulock_freq = 1200000; // AP25
 	else
-		max_cpulock_freq = 1000000;     //AP20
+		max_cpulock_freq = 1000000; // AP20
 
 	is_cpufreq_locked = false;
 	hrtimer_cancel(&cpulock_timer);
@@ -636,9 +632,9 @@ static enum hrtimer_restart tegra_cpulock_timer_func(struct hrtimer *timer)
 	min_cpulock_freq = 0;
 
 	if (sku_id == 0x17)
-		max_cpulock_freq = 1200000; //AP25
+		max_cpulock_freq = 1200000; // AP25
 	else
-		max_cpulock_freq = 1000000;     //AP20
+		max_cpulock_freq = 1000000; // AP20
 
 	is_cpufreq_locked = false;
 	printk(KERN_DEBUG "%s is called\n", __func__);
@@ -803,9 +799,6 @@ static int tegra_cpu_init(struct cpufreq_policy *policy)
 
 	cpufreq_frequency_table_cpuinfo(policy, freq_table);
 	cpufreq_frequency_table_get_attr(freq_table, policy->cpu);
-#ifdef CONFIG_TEGRA_OC
-	policy->max = 1000000;
-#endif
 	policy->cur = tegra_getspeed(policy->cpu);
 	target_cpu_speed[policy->cpu] = policy->cur;
 
