@@ -73,11 +73,11 @@ static int dw9712_write(struct i2c_client *client, u16 value)
 
 static int dw9712_set_position(struct dw9712_info *info, u32 position)
 {
-	pr_info("%s %d\n", __func__, position);
-
 	int err;
 	u16 value;
 	u8 *ptr = (u8 *)&value;
+
+	pr_info("%s %d\n", __func__, position);
 
 	if (position < info->config.pos_low || position > info->config.pos_high){
 		pr_err(" !! RETURN !! position = %d, info->config.pos_low = %d, info->config.pos_high = %d\n",

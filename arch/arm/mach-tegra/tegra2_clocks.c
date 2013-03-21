@@ -2799,7 +2799,7 @@ static int tegra_clk_suspend(void)
 
 #if defined (CONFIG_MACH_STAR)	
         if (tegra_get_current_suspend_mode() != TEGRA_SUSPEND_LP0)
-        	return;
+        	return 0;
 #endif
 
 	*ctx++ = clk_readl(OSC_CTRL) & OSC_CTRL_MASK;

@@ -90,7 +90,7 @@ static const struct i2c_board_info star_i2c_touch_info[] = {
 #ifdef CONFIG_ONETOUCHSCREEN_TEGRA_STAR
 static struct star_onetouch_synaptics_platform_data star_one_ts_data = {
 	.gpio	    = TEGRA_GPIO_PJ6,
-	.power	    = &touch_power_control,
+	.power	    = (void*) touch_power_control,
 	.irqflags   = IRQF_TRIGGER_LOW,
 };
 

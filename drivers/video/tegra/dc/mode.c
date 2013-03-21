@@ -230,8 +230,14 @@ int tegra_dc_program_mode(struct tegra_dc *dc, struct tegra_dc_mode *mode)
 	div = (rate * 2 / pclk) - 2;
 	trace_printk("%s:div=%ld\n", dc->ndev->name, div);
 
+#ifdef CONFIG_MACH_STAR
+	/* clock-related settings copied from fastboot dc init code */
+	tegra_dc_writel(dc, 0x00010012,
+			DC_DISP_SHIFT_CLOCK_OPTIONS);
+#else
 	tegra_dc_writel(dc, 0x00010001,
 			DC_DISP_SHIFT_CLOCK_OPTIONS);
+#endif
 	tegra_dc_writel(dc, PIXEL_CLK_DIVIDER_PCD1 | SHIFT_CLK_DIVIDER(div),
 			DC_DISP_DISP_CLOCK_CONTROL);
 

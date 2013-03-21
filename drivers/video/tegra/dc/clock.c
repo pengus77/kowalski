@@ -91,6 +91,29 @@ void tegra_dc_setup_clk(struct tegra_dc *dc, struct clk *clk)
 	}
 
 	if (dc->out->type == TEGRA_DC_OUT_HDMI) {
+#if defined (CONFIG_MACH_STAR)
+		//use pll_c for 1080p/720p and pll_p for 480p instead of pll_d which is used for MIPI DSI LCD
+		unsigned long rate;
+		struct clk *base_clk;
+
+
+		if (dc->mode.pclk > 70000000) {
+			rate = 445500000;
+			base_clk = clk_get_sys(NULL, "pll_c");
+
+
+			if (rate != clk_get_rate(base_clk))
+				clk_set_rate(base_clk, rate);
+		}
+		else {
+			rate = 216000000;
+			base_clk = clk_get_sys(NULL, "pll_p");
+		}
+
+
+		if (clk_get_parent(clk) != base_clk)
+			clk_set_parent(clk, base_clk);
+#else
 		unsigned long rate;
 		struct clk *parent_clk = clk_get_sys(NULL,
 			dc->out->parent_clk ? : "pll_d_out0");
@@ -108,6 +131,7 @@ void tegra_dc_setup_clk(struct tegra_dc *dc, struct clk *clk)
 
 		if (clk_get_parent(clk) != parent_clk)
 			clk_set_parent(clk, parent_clk);
+#endif
 	}
 
 	if (dc->out->type == TEGRA_DC_OUT_DSI) {
@@ -115,6 +139,11 @@ void tegra_dc_setup_clk(struct tegra_dc *dc, struct clk *clk)
 		struct clk *parent_clk;
 		struct clk *base_clk;
 
+#if defined (CONFIG_MACH_STAR)
+		parent_clk = clk_get_sys(NULL,
+				dc->out->parent_clk ? : "pll_d_out0");
+		base_clk = clk_get_parent(parent_clk);
+#else
 		if (clk == dc->clk) {
 			parent_clk = clk_get_sys(NULL,
 					dc->out->parent_clk ? : "pll_d_out0");
@@ -136,6 +165,7 @@ void tegra_dc_setup_clk(struct tegra_dc *dc, struct clk *clk)
 						TEGRA_CLK_PLLD_DSI_OUT_ENB, 1);
 			}
 		}
+#endif
 
 		rate = dc->mode.pclk * dc->shift_clk_div * 2;
 		if (rate != clk_get_rate(base_clk))

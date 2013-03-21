@@ -940,7 +940,7 @@ int snd_soc_util_init(void);
 void snd_soc_util_exit(void);
 
 #if defined (CONFIG_MACH_STAR)
-void headset_enable();
+void headset_enable(void);
 #endif
 
 #include <sound/soc-dai.h>

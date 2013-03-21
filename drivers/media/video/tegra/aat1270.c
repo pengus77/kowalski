@@ -58,11 +58,11 @@ static ssize_t flash_brightness_store(struct device* dev,
 }
 
 static ssize_t flash_brightness_show(struct device* dev,
-		struct device_attribute* attr, const char* buf, size_t count)
+		struct device_attribute* attr, char* buf, size_t count)
 {
 	return  snprintf(buf, PAGE_SIZE, "%d\n", flash_brightness);	
 }
-static DEVICE_ATTR(flash_brightness, 0666, flash_brightness_show, flash_brightness_store);
+static DEVICE_ATTR(flash_brightness, 0666, (void*) flash_brightness_show, (void*) flash_brightness_store);
 
 static ssize_t torch_store(struct device* dev,
 		struct device_attribute* attr, const char* buf, size_t count)
@@ -81,8 +81,6 @@ static DEVICE_ATTR(torch, 0666, NULL, torch_store);
 static ssize_t enable_store(struct device* dev,
 		struct device_attribute* attr, const char* buf, size_t count)
 {
-	int status = simple_strtoul(buf, NULL, 10);
-
 	gpio_set_value(pdata->gpio_flen, 0);
 	gpio_set_value(pdata->gpio_enset, 0);
 
@@ -90,11 +88,11 @@ static ssize_t enable_store(struct device* dev,
 }
 
 static ssize_t enable_show(struct device* dev,
-		struct device_attribute* attr, const char* buf, size_t count)
+		struct device_attribute* attr, char* buf, size_t count)
 {
 	return  snprintf(buf, PAGE_SIZE, "%d\n", gpio_get_value(pdata->gpio_flen));
 }
-static DEVICE_ATTR(enable, 0666, enable_show, enable_store);
+static DEVICE_ATTR(enable, 0666, (void*) enable_show, (void*) enable_store);
 
 
 static void aat1270_remove(struct platform_device *pdev)
@@ -196,7 +194,7 @@ exit:
 
 static struct platform_driver aat1270_driver = {
 	.probe	= aat1270_probe,
-	.remove = aat1270_remove,
+	.remove = (void*) aat1270_remove,
 	.shutdown = aat1270_shutdown,
 	.driver = {
 		.name 	= "aat1270",

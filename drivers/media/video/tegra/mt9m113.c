@@ -1247,7 +1247,7 @@ static int mt9m113_set_white_balance(struct mt9m113_info *info, unsigned int wb_
 static int mt9m113_set_exposure(struct mt9m113_info *info, ExposureValueType *exposure)
 {
 	int err = 0;
-	s8 value;
+	s8 value = 0;
 
 	if(exposure == NULL || exposure->range == 0)
 	{

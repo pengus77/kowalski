@@ -64,7 +64,6 @@ static DEFINE_MUTEX(tegra_cpulock_lock);
 static bool is_cpufreq_locked;
 static unsigned long min_cpulock_freq;
 static unsigned long max_cpulock_freq;
-static int cpulock_debug_timeout;
 static struct hrtimer cpulock_timer;
 void tegra_cpu_lock_speed(unsigned long min_rate, unsigned long max_rate, int timeout_ms);
 void tegra_cpu_unlock_speed(void);
@@ -574,13 +573,13 @@ void tegra_cpu_lock_speed(unsigned long min_rate, unsigned long max_rate, int ti
 		}
 	}
 	if (!found) {
-		pr_err("cpu-tegra: Failed to lock cpu frequency to %d kHz\n", min_rate);
+		pr_err("cpu-tegra: Failed to lock cpu frequency to %lu kHz\n", min_rate);
 		return;
 	}
 
 	mutex_lock(&tegra_cpulock_lock);
 
-	printk(KERN_DEBUG "%s: min_rate(%d),timeout(%d)\n",
+	printk(KERN_DEBUG "%s: min_rate(%lu),timeout(%d)\n",
 			__func__, min_rate, timeout_ms);
 	min_cpulock_freq = min_rate;
 	if (max_rate != 0)

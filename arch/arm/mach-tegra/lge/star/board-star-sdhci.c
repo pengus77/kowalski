@@ -278,7 +278,7 @@ static unsigned long long int Strtoull(const char *s, char **endptr, int base)
 			val <<= 4;
 			val +=  CharToXDigit(*s);
 			s++;
-#if DEBUG
+#if defined DEBUG
 			printk("0x%x\n", (int)val);
 #endif
 		}
@@ -343,8 +343,8 @@ static int tegra_get_partition_info_by_name(
 static int __init star_emmc_init(void)
 {
 #ifdef CONFIG_EMBEDDED_MMC_START_OFFSET
-	unsigned long long start, length;
-	unsigned int sector_size;
+	unsigned long long start = 0, length = 0;
+	unsigned int sector_size = 0;
 	int err;
 
 	/*look for mbr partition*/

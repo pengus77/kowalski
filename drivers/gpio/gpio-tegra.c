@@ -823,14 +823,6 @@ static int __init tegra_gpio_init(void)
 	}
 
 	for (i=0; i<ARRAY_SIZE(tegra_sleep_gpio_info_array); i++) {
-		// disable tristate group
-		if( tegra_sleep_gpio_info_array[i].port == 0xFF ||
-				tegra_sleep_gpio_info_array[i].oe == GPIO_OUTPUT)
-		{
-			u32 tristate_reg_num = tegra_sleep_gpio_info_array[i].group >> 16;
-			u32 tristate_reg_bit = tegra_sleep_gpio_info_array[i].group & 0xFFFF;
-		}
-
 		// It's not GPIO pin, just set tristate.
 		if(tegra_sleep_gpio_info_array[i].port != 0xFF){
 			b = (tegra_sleep_gpio_info_array[i].port) >> 2;

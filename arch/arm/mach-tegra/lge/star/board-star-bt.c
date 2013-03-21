@@ -50,9 +50,6 @@
 #define GPIO_BT_WAKE		TEGRA_GPIO_PX4
 #define GPIO_BT_HOSTWAKE	TEGRA_GPIO_PC7
 
-static bool uart_req;
-
-
 static int plat_bt_uart_enable(void)
 {
 	int err = 0;

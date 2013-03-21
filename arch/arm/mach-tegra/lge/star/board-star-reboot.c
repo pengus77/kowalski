@@ -88,7 +88,7 @@ static int star_reboot_notify(struct notifier_block *nb,
 	rsbuf[0] ='w';
 	write_cmd_reserved_buffer(rsbuf,3);
 
-	printk(KERN_DEBUG "star_reboot_notify : rsbuf = %s [%d]\n", (unsigned char *)rsbuf, event);
+	printk(KERN_DEBUG "star_reboot_notify : rsbuf = %s [%ld]\n", (unsigned char *)rsbuf, event);
 	switch (event) {
 		case SYS_RESTART:
 		case SYS_HALT:
@@ -242,7 +242,7 @@ static struct attribute_group star_rs_wdt_attr_group = {
 
 #endif
 
-static DEVICE_ATTR(reset, 0644, star_rs_reset_read , star_rs_reset_write);
+static DEVICE_ATTR(reset, 0644, (void*) star_rs_reset_read , (void*) star_rs_reset_write);
 
 static struct attribute *star_rs_reset_attr[] = {
 	&dev_attr_reset.attr,

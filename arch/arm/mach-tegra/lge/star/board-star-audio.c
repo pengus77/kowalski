@@ -57,7 +57,7 @@ struct wm8994_pdata wm8994_data = {
 	.gpio_defaults[9] = 0x0100,
 	.gpio_defaults[10] = 0x0100,
 	.num_drc_cfgs = 2,
-	.drc_cfgs  = &wm8994_drc_data,
+	.drc_cfgs  = &wm8994_drc_data[0],
 };
 
 

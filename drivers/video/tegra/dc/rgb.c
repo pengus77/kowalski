@@ -148,7 +148,9 @@ void tegra_cpu_stop_dc_stream_at_frame_end(struct tegra_dc *dc)
 
 static void tegra_dc_rgb_enable(struct tegra_dc *dc)
 {
+#ifndef CONFIG_MACH_STAR
 	int i;
+#endif
 	u32 out_sel_pintable[ARRAY_SIZE(tegra_dc_rgb_enable_out_sel_pintable)];
 #if defined CONFIG_MACH_STAR
 	u32 val;

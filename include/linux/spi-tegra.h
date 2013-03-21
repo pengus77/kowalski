@@ -48,6 +48,7 @@ struct tegra_spi_device_controller_data {
 };
 
 #if defined(CONFIG_MACH_STAR)
+#include <linux/spi/spi.h>
 extern bool spi_tegra_is_suspend(struct spi_device *spi);
 extern bool spi_tegra_suspend_failed(struct spi_device *spi);
 #endif

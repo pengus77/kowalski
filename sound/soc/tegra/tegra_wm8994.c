@@ -79,7 +79,7 @@ extern struct wake_lock headset_wake_lock;
 
 #if defined(CONFIG_MACH_STAR)
 static bool is_call_mode; 
-bool in_call_state();
+bool in_call_state(void);
 #endif
 
 struct tegra_wm8994 {
@@ -352,7 +352,6 @@ static int tegra_bt_call_hw_params(struct snd_pcm_substream *substream,
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
-	struct snd_soc_dai *codec_dai = rtd->codec_dai;
 	struct snd_soc_codec *codec = rtd->codec;
 	struct snd_soc_card *card = codec->card;
 	struct tegra_wm8994 *machine = snd_soc_card_get_drvdata(card);
@@ -552,10 +551,9 @@ static int tegra_call_mode_put(struct snd_kcontrol *kcontrol,
 #endif
 	}
 
-#if defined(CONFIG_MACH_STAR)
-	is_call_mode = machine->is_call_mode = is_call_mode_new;
-#else
 	machine->is_call_mode = is_call_mode_new;
+#if defined(CONFIG_MACH_STAR)
+	is_call_mode = is_call_mode_new;
 #endif
 
 	return 1;
@@ -742,7 +740,7 @@ static int tegra_wm8994_init(struct snd_soc_pcm_runtime *rtd)
 	set_bit(KEY_HOOK, switch_data->ip_dev->keybit); 
 
 	switch_data->ip_dev->name = "tegra-snd-wm8994";
-	input_register_device(switch_data->ip_dev);  
+	ret = input_register_device(switch_data->ip_dev);  
 	headset_sw_data = switch_data;   
 
 	wake_lock_init(&headset_wake_lock, WAKE_LOCK_SUSPEND, "headset_wlock");
@@ -927,7 +925,7 @@ static __devinit int tegra_wm8994_driver_probe(struct platform_device *pdev)
 
 	machine->pdata = pdata;
 
-	ret = tegra_asoc_utils_init(&machine->util_data, &pdev->dev);
+	ret = tegra_asoc_utils_init(&machine->util_data, &pdev->dev, card);
 	if (ret)
 		goto err_free_machine;
 
@@ -944,8 +942,6 @@ static __devinit int tegra_wm8994_driver_probe(struct platform_device *pdev)
 
 	return 0;
 
-err_unregister_card:
-	snd_soc_unregister_card(card);
 err_fini_utils:
 	tegra_asoc_utils_fini(&machine->util_data);
 err_free_machine:

@@ -73,8 +73,6 @@ struct whistler_baseband {
 
 int whistler_baseband_init(void);
 
-static int spi_init(void);
-
 extern int star_baseband_init(void);
 
 #endif	/* BOARD_STAR_BASEBAND_H */

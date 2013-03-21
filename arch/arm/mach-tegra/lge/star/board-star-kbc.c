@@ -86,7 +86,7 @@ static int star_wakeup_key(void)
 
 	status = readl(IO_ADDRESS(TEGRA_PMC_BASE) + PMC_WAKE_STATUS);
 
-	pr_debug("star_wakeup_key : status %lu\n", status);
+	pr_debug("star_wakeup_key : status %d\n", status);
 
 	return (status & TEGRA_WAKE_GPIO_PV2) ? KEY_POWER : 
 		(status & TEGRA_WAKE_GPIO_PV6) ? KEY_HOME : KEY_RESERVED;
@@ -95,7 +95,6 @@ static int star_wakeup_key(void)
 int __init star_kbc_init(void)
 {
 	int i;	
-	int ret = 0;
 
 	pr_info("Registering tegra-kbc-gpio\n");
 

@@ -299,21 +299,6 @@ static struct platform_device *star_max8907c_power_devices[] = {
 #endif
 };
 
-static int star_max8907c_setup(void)
-{
-	int ret;
-
-	/*
-	 * Configure PWREN, and attach CPU V1 rail to it.
-	 * TODO: h/w events (power cycle, reset, battery low) auto-disables PWREN.
-	 * Only soft reset (not supported) requires s/w to disable PWREN explicitly
-	 */
-	ret = max8907c_pwr_en_config();
-	if (ret != 0)
-		return ret;
-	return max8907c_pwr_en_attach();
-}
-
 static struct max8907c_platform_data max8907c_pdata = {
 	.num_subdevs = ARRAY_SIZE(star_max8907c_power_devices),
 	.subdevs = star_max8907c_power_devices,
@@ -398,8 +383,6 @@ static struct tegra_suspend_platform_data star_suspend_data = {
 
 void star_power_off(void)
 {
-	int ret;
-
 	max8907c_power_off();
 
 	while (1);

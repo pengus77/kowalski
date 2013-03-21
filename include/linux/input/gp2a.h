@@ -25,15 +25,6 @@
 /* input device for proximity sensor */
 #define USE_INPUT_DEVICE 	1
 
-/* initial value for sensor register */
-static int gp2a_original_image[8] = {
-	0x00,  
-	0x08,  //Gain(LED) - REGS_GAIN
-	0xc2,  //Hysteresis - REGS_HYS
-	0x04,  //Detection Cycle - REGS_CYCLE ->0x04 : 8ms,0x0c : 16ms, 0x14 : 32ms, 0x1c : 64ms, 0x24 : 128ms ...
-	0x02,  //Operation Mode - REGS_OPMOD
-};
-
 /* driver data */
 struct gp2a_data {
 	struct i2c_client *client;

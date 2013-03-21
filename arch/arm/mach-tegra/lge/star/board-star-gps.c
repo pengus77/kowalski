@@ -132,7 +132,6 @@ static int __devinit gps_gpio_probe(struct platform_device *pdev)
 {
 	int ret = 0;
 	struct gps_gpio_platform_data *pdata = pdev->dev.platform_data;
-	unsigned pwron, reset_n;
 
 	pr_info("%s\n", __func__);
 

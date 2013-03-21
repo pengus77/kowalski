@@ -88,7 +88,6 @@ static void __init uart_debug_init(void)
 	unsigned long rate;
 	struct clk *debug_uart_clk;
 	struct clk *c;
-	int modem_id = tegra_get_modem_id();
 
 	/* UARTB is the debug port. */
 	pr_info("Selecting UARTB as the debug console\n");

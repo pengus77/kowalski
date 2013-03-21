@@ -43,11 +43,13 @@
 
 int lge_nvdata_raw_read(int offset, char* buf, int size)
 {
-	if(size == 0) return 0;
-
 	int h_file = 0;
 	int ret = 0;
+
 	mm_segment_t oldfs = get_fs();
+
+	if(size == 0) return 0;
+
 	set_fs(KERNEL_DS);
 	h_file = sys_open(LGE_NVDATA_PARTITION, O_RDWR,0);
 
@@ -83,14 +85,13 @@ int lge_nvdata_raw_read(int offset, char* buf, int size)
 }
 
 int lge_nvdata_raw_write(int offset, char* buf, int size)
-
 {
-	if(size == 0) return 0;
-
 	int h_file = 0;
 	int ret = 0;
-
 	mm_segment_t oldfs = get_fs();
+
+	if(size == 0) return 0;
+
 	set_fs(KERNEL_DS);
 	h_file = sys_open(LGE_NVDATA_PARTITION, O_RDWR,0);
 
@@ -130,19 +131,19 @@ int lge_nvdata_raw_write(int offset, char* buf, int size)
 
 int lge_nvdata_read(lge_nvdata_offset offset, char* buf, int size)
 {
-	printk(KERN_DEBUG "start lge_nvdata_read .\n");
 	int pos = (int)offset ;
+	printk(KERN_DEBUG "start lge_nvdata_read .\n");
 	return lge_nvdata_raw_read(pos,buf,size);
 }
 
 int lge_nvdata_write(lge_nvdata_offset offset, char* buf, int size)
 {
-	printk(KERN_DEBUG "start lge_nvdata_write .\n");
 	int pos = (int)offset;
+	printk(KERN_DEBUG "start lge_nvdata_write .\n");
 	return lge_nvdata_raw_write(pos,buf,size);
 }
 
 
-void lge_clean_nvdata_partition()
+void lge_clean_nvdata_partition(void)
 {
 }

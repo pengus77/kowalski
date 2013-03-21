@@ -31,7 +31,7 @@
 #include <linux/backlight.h>
 #include <linux/aat2870.h>
 #include <linux/hitachi.h>
-#include <mach/nvmap.h>
+#include <linux/nvmap.h>
 #include <mach/irqs.h>
 #include <mach/iomap.h>
 #include <mach/dc.h>
@@ -43,6 +43,8 @@
 #include <mach-tegra/board.h>
 
 #include <mach-tegra/cpu-tegra.h>
+
+#include "../../tegra2_host1x_devices.h"
 
 /* GPIOs for Hitachi LCD */
 #define STAR_HITACHI_LCD_RESET	TEGRA_GPIO_PV7
@@ -890,9 +892,21 @@ static struct tegra_dc_mode star_panel_modes[] = {
 
 static struct tegra_dc_out_pin star_dc_out_pins[] = {
 	{
-		.name = TEGRA_DC_OUT_PIN_PIXEL_CLOCK,
-		.pol = TEGRA_DC_OUT_PIN_POL_LOW,
+		.name	= TEGRA_DC_OUT_PIN_H_SYNC,
+		.pol	= TEGRA_DC_OUT_PIN_POL_LOW,
 	},
+	{
+		.name	= TEGRA_DC_OUT_PIN_V_SYNC,
+		.pol	= TEGRA_DC_OUT_PIN_POL_LOW,
+	},
+	{
+		.name	= TEGRA_DC_OUT_PIN_PIXEL_CLOCK,
+		.pol	= TEGRA_DC_OUT_PIN_POL_LOW,
+	},
+};
+
+static u8 star_dc_out_pin_sel_config[] = {
+	TEGRA_PIN_OUT_CONFIG_SEL_LM1_PM1,
 };
 
 static struct tegra_dc_out star_disp1_out = {
@@ -909,6 +923,9 @@ static struct tegra_dc_out star_disp1_out = {
 
 	.out_pins = star_dc_out_pins,
 	.n_out_pins = ARRAY_SIZE(star_dc_out_pins),
+
+	.out_sel_configs   = star_dc_out_pin_sel_config,
+	.n_out_sel_configs = ARRAY_SIZE(star_dc_out_pin_sel_config),
 
 	.dither = TEGRA_DC_ERRDIFF_DITHER,
 
@@ -1028,16 +1045,8 @@ static void star_panel_early_suspend(struct early_suspend *h)
 	if (num_registered_fb > 1)
 		fb_blank(registered_fb[1], FB_BLANK_NORMAL);
 #ifdef CONFIG_TEGRA_CONVSERVATIVE_GOV_ON_EARLYSUPSEND
-	cpufreq_save_default_governor();
-	cpufreq_set_conservative_governor();
-	cpufreq_set_conservative_governor_param("up_threshold",
-			SET_CONSERVATIVE_GOVERNOR_UP_THRESHOLD);
-
-	cpufreq_set_conservative_governor_param("down_threshold",
-			SET_CONSERVATIVE_GOVERNOR_DOWN_THRESHOLD);
-
-	cpufreq_set_conservative_governor_param("freq_step",
-			SET_CONSERVATIVE_GOVERNOR_FREQ_STEP);
+	cpufreq_store_default_gov();
+	cpufreq_change_gov(cpufreq_conservative_gov);
 #endif
 }
 
@@ -1045,7 +1054,7 @@ static void star_panel_late_resume(struct early_suspend *h)
 {
 	unsigned i;
 #ifdef CONFIG_TEGRA_CONVSERVATIVE_GOV_ON_EARLYSUPSEND
-	cpufreq_restore_default_governor();
+	cpufreq_restore_default_gov();
 #endif
 	for (i = 0; i < num_registered_fb; i++)
 		fb_blank(registered_fb[i], FB_BLANK_UNBLANK);
@@ -1118,7 +1127,7 @@ int __init star_panel_init(void)
 #endif
 
 #ifdef CONFIG_TEGRA_GRHOST
-	err = nvhost_device_register(&tegra_grhost_device);
+	err = tegra2_register_host1x_devices();
 	if (err)
 		return err;
 #endif
