@@ -23,6 +23,7 @@ obj-$(CONFIG_REGULATOR_MAX8952) += max8952r.o
 else
 obj-$(CONFIG_REGULATOR_MAX8952) += max8952.o
 endif
+obj-$(CONFIG_REGULATOR_MAX8973) += max8973-regulator.o
 obj-$(CONFIG_REGULATOR_MAX8997) += max8997.o
 obj-$(CONFIG_REGULATOR_MAX8998) += max8998.o
 obj-$(CONFIG_REGULATOR_MAX8907C) += max8907c-regulator.o
@@ -43,6 +44,7 @@ obj-$(CONFIG_REGULATOR_MC13783) += mc13783-regulator.o
 obj-$(CONFIG_REGULATOR_MC13892) += mc13892-regulator.o
 obj-$(CONFIG_REGULATOR_MC13XXX_CORE) +=  mc13xxx-regulator-core.o
 obj-$(CONFIG_REGULATOR_AB3100) += ab3100.o
+obj-$(CONFIG_REGULATOR_RC5T583)  += rc5t583-regulator.o
 obj-$(CONFIG_REGULATOR_TPS6105X) += tps6105x-regulator.o
 obj-$(CONFIG_REGULATOR_TPS65023) += tps65023-regulator.o
 obj-$(CONFIG_REGULATOR_TPS6507X) += tps6507x-regulator.o
@@ -56,8 +58,8 @@ obj-$(CONFIG_REGULATOR_AB8500)	+= ab8500.o
 obj-$(CONFIG_REGULATOR_DB8500_PRCMU) += db8500-prcmu.o
 obj-$(CONFIG_REGULATOR_TPS65910) += tps65910-regulator.o
 obj-$(CONFIG_REGULATOR_TPS62360) += tps62360-regulator.o
+obj-$(CONFIG_REGULATOR_TPS6238X0) += tps6238x0-regulator.o
 obj-$(CONFIG_REGULATOR_AAT2870) += aat2870-regulator.o
-obj-$(CONFIG_REGULATOR_GPIO_SWITCH)	+= gpio-switch-regulator.o
 obj-$(CONFIG_REGULATOR_FAN53555) += fan53555-regulator.o
 obj-$(CONFIG_REGULATOR_LP8720)  += lp8720.o
 ccflags-$(CONFIG_REGULATOR_DEBUG) += -DDEBUG

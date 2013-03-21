@@ -895,7 +895,7 @@ static int tegra_startup(struct uart_port *u)
 		goto fail;
 
 	pdata = u->dev->platform_data;
-	if (pdata->is_loopback)
+	if (pdata && pdata->is_loopback)
 		t->mcr_shadow |= UART_MCR_LOOP;
 
 	dev_dbg(u->dev, "Requesting IRQ %d\n", u->irq);
@@ -1263,6 +1263,12 @@ static void tegra_set_termios(struct uart_port *u, struct ktermios *termios,
 	if (t->rts_active)
 		set_rts(t, false);
 
+	/* Clear all interrupts as configuration is going to be change */
+	uart_writeb(t, t->ier_shadow | UART_IER_RDI, UART_IER);
+	uart_readb(t, UART_IER);
+	uart_writeb(t, 0, UART_IER);
+	uart_readb(t, UART_IER);
+
 	/* Parity */
 	lcr = t->lcr_shadow;
 	lcr &= ~UART_LCR_PARITY;
@@ -1334,6 +1340,13 @@ static void tegra_set_termios(struct uart_port *u, struct ktermios *termios,
 
 	/* update the port timeout based on new settings */
 	uart_update_timeout(u, termios->c_cflag, baud);
+
+	/* Make sure all write has completed */
+	uart_readb(t, UART_IER);
+
+	/* Reenable interrupt */
+	uart_writeb(t, t->ier_shadow, UART_IER);
+	uart_readb(t, UART_IER);
 
 	spin_unlock_irqrestore(&u->lock, flags);
 	dev_vdbg(t->uport.dev, "-tegra_set_termios\n");
@@ -1638,7 +1651,7 @@ int tegra_uart_is_tx_empty(struct uart_port *uport)
 	return tegra_tx_empty(uport);
 }
 
-static struct platform_driver tegra_uart_platform_driver = {
+static struct platform_driver tegra_uart_platform_driver __refdata= {
 	.probe		= tegra_uart_probe,
 	.remove		= __devexit_p(tegra_uart_remove),
 	.suspend	= tegra_uart_suspend,

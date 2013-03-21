@@ -14,6 +14,7 @@
 #include <linux/err.h>
 #include <linux/platform_device.h>
 #include <linux/regulator/driver.h>
+#include <linux/regulator/machine.h>
 #include <linux/mfd/max8907c.h>
 #include <linux/regulator/max8907c-regulator.h>
 #if defined (CONFIG_MACH_STAR)
@@ -32,6 +33,7 @@ struct max8907c_regulator_info {
 	u32 max_uV;
 	u32 step_uV;
 	u8 reg_base;
+	u32 enable_time_us;
 	struct regulator_desc desc;
 	struct i2c_client *i2c;
 };
@@ -161,6 +163,7 @@ static int max8907c_regulator_out5v_enable(struct regulator_dev *dev);
 static int max8907c_regulator_ldo_disable(struct regulator_dev *dev);
 static int max8907c_regulator_out5v_disable(struct regulator_dev *dev);
 static int max8907c_regulator_ldo_is_enabled(struct regulator_dev *dev);
+static int max8907c_regulator_ldo_enable_time(struct regulator_dev *dev);
 static int max8907c_regulator_out5v_is_enabled(struct regulator_dev *dev);
 #if defined (CONFIG_MACH_STAR)
 static int max8907c_regulator_ldo_touchled_set_voltage(struct regulator_dev *dev,int min_uV, int max_uV);
@@ -178,6 +181,7 @@ static struct regulator_ops max8907c_ldo_ops = {
 	.enable = max8907c_regulator_ldo_enable,
 	.disable = max8907c_regulator_ldo_disable,
 	.is_enabled = max8907c_regulator_ldo_is_enabled,
+	.enable_time = max8907c_regulator_ldo_enable_time,
 };
 
 static struct regulator_ops max8907c_fixed_ops = {
@@ -412,6 +416,13 @@ static int max8907c_regulator_ldo_is_enabled(struct regulator_dev *rdev)
 	return (val & MAX8907C_MASK_LDO_EN) || !(val & MAX8907C_MASK_LDO_SEQ);
 }
 
+static int max8907c_regulator_ldo_enable_time(struct regulator_dev *rdev)
+{
+	struct max8907c_regulator_info *info = rdev_get_drvdata(rdev);
+
+	return info->enable_time_us;
+}
+
 static int max8907c_regulator_out5v_is_enabled(struct regulator_dev *rdev)
 {
 	const struct max8907c_regulator_info *info = rdev_get_drvdata(rdev);
@@ -459,6 +470,8 @@ static int max8907c_regulator_probe(struct platform_device *pdev)
 	struct max8907c *max8907c = dev_get_drvdata(pdev->dev.parent);
 	struct max8907c_regulator_info *info;
 	struct regulator_dev *rdev;
+	struct regulator_init_data *p = pdev->dev.platform_data;
+	struct max8907c_chip_regulator_data *chip_data = p->driver_data;;
 	u8 version;
 #if defined(CONFIG_MACH_STAR)
 	struct regulator_init_data *initdata;
@@ -475,6 +488,9 @@ static int max8907c_regulator_probe(struct platform_device *pdev)
 
 	info = &max8907c_regulators[pdev->id];
 	info->i2c = max8907c->i2c_power;
+
+	if (chip_data != NULL)
+		info->enable_time_us = chip_data->enable_time_us;
 
 #if defined(CONFIG_MACH_STAR)
 	initdata = (struct regulator_init_data *)pdev->dev.platform_data;

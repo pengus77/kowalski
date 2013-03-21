@@ -1,4 +1,6 @@
 GCOV_PROFILE := y
+
+subdir-ccflags-y := -Werror
 #
 # Makefile for the video capture/playback device drivers.
 #
@@ -9,6 +11,7 @@ obj-$(CONFIG_TEGRA_DTV)		+= tegra_dtv.o
 obj-$(CONFIG_TEGRA_CAMERA)	+= tegra_camera.o
 obj-$(CONFIG_VIDEO_AR0832)	+= ar0832_main.o
 obj-$(CONFIG_VIDEO_OV5650)	+= ov5650.o
+obj-$(CONFIG_VIDEO_OV5640)	+= ov5640.o
 obj-$(CONFIG_VIDEO_OV14810)	+= ov14810.o
 obj-$(CONFIG_VIDEO_IMX073)      += imx073.o
 obj-$(CONFIG_VIDEO_OV9726)	+= ov9726.o
@@ -19,6 +22,7 @@ obj-$(CONFIG_TORCH_SSL3250A)	+= ssl3250a.o
 obj-$(CONFIG_TORCH_TPS61050)	+= tps61050.o
 obj-$(CONFIG_VIDEO_SH532U)	+= sh532u.o
 obj-$(CONFIG_VIDEO_AD5820)	+= ad5820.o
+obj-$(CONFIG_VIDEO_AD5816)	+= ad5816.o
 obj-$(CONFIG_VIDEO_DW9712)      += dw9712.o
 obj-$(CONFIG_TORCH_AAT1270)     += aat1270.o
 

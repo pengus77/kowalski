@@ -4,6 +4,8 @@
  * Copyright (C) 2010 Google, Inc.
  * Author: Erik Gilling <konkers@android.com>
  *
+ * Copyright (c) 2010-2012, NVIDIA CORPORATION, All rights reserved.
+ *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
  * may be copied, distributed, and modified under those terms.
@@ -144,7 +146,7 @@ void tegra_cpu_stop_dc_stream_at_frame_end(struct tegra_dc *dc)
 }
 #endif
 
-void tegra_dc_rgb_enable(struct tegra_dc *dc)
+static void tegra_dc_rgb_enable(struct tegra_dc *dc)
 {
 	int i;
 	u32 out_sel_pintable[ARRAY_SIZE(tegra_dc_rgb_enable_out_sel_pintable)];
@@ -272,9 +274,13 @@ void tegra_dc_rgb_enable(struct tegra_dc *dc)
 	
 	tegra_dc_io_end(dc);
 #endif
+
+	/* Inform DC register updated */
+	tegra_dc_writel(dc, GENERAL_UPDATE, DC_CMD_STATE_CONTROL);
+	tegra_dc_writel(dc, GENERAL_ACT_REQ, DC_CMD_STATE_CONTROL);
 }
 
-void tegra_dc_rgb_disable(struct tegra_dc *dc)
+static void tegra_dc_rgb_disable(struct tegra_dc *dc)
 {
 #if defined CONFIG_MACH_STAR
 	tegra_cpu_stop_dc_stream_at_frame_end(dc);
