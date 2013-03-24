@@ -54,9 +54,9 @@ int dhd_msg_level;
 
 char fw_path[MOD_PARAM_PATHLEN];
 char nv_path[MOD_PARAM_PATHLEN];
-#if defined(CONFIG_LGE_BCM432X_PATCH)
+#if defined(CONFIG_MACH_STAR)
 char config_path[MOD_PARAM_PATHLEN] = "";
-#endif /* CONFIG_LGE_BCM432X_PATCH */
+#endif /* CONFIG_MACH_STAR */
 
 /* Last connection success/failure status */
 uint32 dhd_conn_event;
@@ -67,10 +67,6 @@ uint32 dhd_conn_reason;
 #define htod16(i) i
 #define dtoh32(i) i
 #define dtoh16(i) i
-
-#if defined(CONFIG_LGE_BCM432X_PATCH)
-#define NV_WIFI_MACADDR "/data/misc/wifi/config_mac"
-#endif
 
 extern int dhdcdc_set_ioctl(dhd_pub_t *dhd, int ifidx, uint cmd, void *buf, uint len);
 extern void dhd_ind_scan_confirm(void *h, bool status);
@@ -1308,365 +1304,6 @@ int dhd_arp_get_arp_hostip_table(dhd_pub_t *dhd, void *buf, int buflen)
 	return 0;
 }
 
-#if defined(CONFIG_LGE_BCM432X_PATCH)
-#include <linux/fs.h>
-#undef isprint
-#include <linux/ctype.h>
-
-#if 0
-CONFIG FILE FORMAT
-==================
-
-AVAILABLE PARAMETERS
-~~~~~~~~~~~~~~~~~~~~
-+====================+=========================================================+
-| VARIABLE NAME      | DESCRIPTION                                             |
-+====================+=========================================================+
-| btc_mode           | BTCoexist                                               |
-|                    | 0: disable, 1: enable                                   |
-+--------------------+---------------------------------------------------------+
-| country            | Country Code                                            |
-|                    | KR, EU, US or AU ...                                    |
-+--------------------+---------------------------------------------------------+
-| vlan_mode          | Specifies the use of 802.1Q Tags (ON, OFF, AUTO).       |
-|                    | 0: off, 1: on, -1: auto                                 |
-+--------------------+---------------------------------------------------------+
-| mpc                | Minimum Power Consumption                               |
-|                    | 0: disable, 1: enable                                   |
-+--------------------+---------------------------------------------------------+
-| wme                | WME QoS                                                 |
-|                    | 0: disable, 1: enable                                   |
-+--------------------+---------------------------------------------------------+
-| wme_apsd           | WME APSD (Advanced Power Save Delivery)                 |
-|                    | 0: disable, 1: enable                                   |
-+--------------------+---------------------------------------------------------+
-| wme_qosinfo        | Set APSD parameters on STA.                             |
-|                    | - max_sp_len = number of frames per USP: 0 (all), 2, 4, |
-|                    |   or 6                                                  |
-|                    | - be, bk, vi, and vo = 0 to disable, 1 to enable U-APSD |
-|                    |   per AC                                                |
-|                    |        <max_sp_len> <be> <bk> <vi> <vo>                 |
-|                    | 0x0f =      0         1    1    1    1                  |
-|                    | 0x2f =      2         1    1    1    1                  |
-|                    | 0x4f =      4         1    1    1    1                  |
-|                    | 0x6f =      6         1    1    1    1                  |
-|                    | 0x03 =      0         0    0    1    1                  |
-+--------------------+---------------------------------------------------------+
-| wme_auto_trigger   | 0: disable, 1: enable                                   |
-+--------------------+---------------------------------------------------------+
-| wme_apsd_trigger   | in msec, 0: disable                                     |
-+--------------------+---------------------------------------------------------+
-| roam_off           | 0: roaming on, 1: roaming off                           |
-+--------------------+---------------------------------------------------------+
-| roam_scan_period   | in sec                                                  |
-+--------------------+---------------------------------------------------------+
-| roam_delta         | in dB                                                   |
-+--------------------+---------------------------------------------------------+
-| roam_trigger       | in dBm                                                  |
-+--------------------+---------------------------------------------------------+
-| PM                 | Power Saving Mode                                       |
-|                    | 0: off, 1: max, 2: fast                                 |
-+--------------------+---------------------------------------------------------+
-| assoc_listen       | The Listen Interval sent in association requests        |
-|                    | number of beacon                                        |
-+--------------------+---------------------------------------------------------+
-
-EXAMPLE
-~~~~~~~
-btc_mode=1
-country=AU
-vlan_mode=0
-mpc=1
-wme=1
-wme_apsd=0
-wme_qosinfo=0x00
-wme_auto_trigger=1
-wme_apsd_trigger=0
-roam_off=0
-roam_scan_period=10
-roam_delta=20
-roam_trigger=-70
-PM=2
-assoc_listen=1
-#endif
-
-static int dhd_preinit_proc(dhd_pub_t *dhd, int ifidx, char *name, char *value)
-{
-	int var_int;
-
-	if (!strcmp(name, "country")) {
-		return dhdcdc_set_ioctl(dhd, ifidx, WLC_SET_COUNTRY,
-				value, WLC_CNTRY_BUF_SZ);
-	} else if (!strcmp(name, "roam_scan_period")) {
-		var_int = (int)simple_strtol(value, NULL, 0);
-		return dhdcdc_set_ioctl(dhd, ifidx, WLC_SET_ROAM_SCAN_PERIOD,
-				&var_int, sizeof(var_int));
-	} else if (!strcmp(name, "roam_delta") || !strcmp(name, "roam_trigger")) {
-		struct {
-			int val;
-			int band;
-		} x;
-		x.val = (int)simple_strtol(value, NULL, 0);
-		x.band = WLC_BAND_AUTO;
-		return dhdcdc_set_ioctl(dhd, ifidx, strcmp(name, "roam_delta") ?
-				WLC_SET_ROAM_TRIGGER : WLC_SET_ROAM_DELTA, &x, sizeof(x));
-	} else if (!strcmp(name, "PM")) {
-		var_int = (int)simple_strtol(value, NULL, 0);
-		return dhdcdc_set_ioctl(dhd, ifidx, WLC_SET_PM,
-				&var_int, sizeof(var_int));
-	} else if(!strcmp(name,"cur_etheraddr")){
-		struct ether_addr ea;
-		char buf[32];
-		uint iovlen;
-		int ret;
-
-		DHD_ERROR(("%s: cur_etheraddr", __FUNCTION__));
-
-		bcm_ether_atoe(value, &ea);
-		DHD_INFO(("%s: Change Macaddr = %02X:%02X:%02X:%02X:%02X:%02X\n",__FUNCTION__,
-				ea.octet[0], ea.octet[1], ea.octet[2],
-				ea.octet[3], ea.octet[4], ea.octet[5]));
-
-		iovlen = bcm_mkiovar("cur_etheraddr", (char*)&ea, ETHER_ADDR_LEN, buf, 32);
-
-		ret = dhdcdc_set_ioctl(dhd, ifidx, WLC_SET_VAR, buf, iovlen);
-		if (ret < 0) {
-			DHD_ERROR(("%s: can't set MAC address , error=%d\n", __FUNCTION__, ret));
-			return ret;
-		}
-		else{
-			memcpy(dhd->mac.octet, (void *)&ea, ETHER_ADDR_LEN);
-			return ret;
-		}
-	} else {
-		uint iovlen;
-		char iovbuf[WLC_IOCTL_SMLEN];
-
-		/* wlu_iovar_setint */
-		var_int = (int)simple_strtol(value, NULL, 0);
-
-		/* Setup timeout bcn_timeout from dhd driver 4.217.48 */
-		if(!strcmp(name, "roam_off")) {
-			/* Setup timeout if Beacons are lost to report link down */
-			if (var_int) {
-				uint bcn_timeout = 2;
-				bcm_mkiovar("bcn_timeout", (char *)&bcn_timeout, 4, iovbuf, sizeof(iovbuf));
-				dhdcdc_set_ioctl(dhd, 0, WLC_SET_VAR, iovbuf, sizeof(iovbuf));
-			}
-		}
-		/* Setup timeout bcm_timeout from dhd driver 4.217.48 */
-
-		iovlen = bcm_mkiovar(name, (char *)&var_int, sizeof(var_int),
-				iovbuf, sizeof(iovbuf));
-		return dhdcdc_set_ioctl(dhd, ifidx, WLC_SET_VAR,
-				iovbuf, iovlen);
-	}
-
-	return 0;
-}
-
-static int dhd_preinit_config(dhd_pub_t *dhd, int ifidx)
-{
-	mm_segment_t old_fs;
-	struct kstat stat;
-	struct file *fp = NULL;
-	unsigned int len;
-	char *buf = NULL, *p, *name, *value;
-	int ret = 0;
-
-	if (!*config_path)
-		return 0;
-
-	old_fs = get_fs();
-	set_fs(get_ds());
-	if ((ret = vfs_stat(config_path, &stat))) {
-		set_fs(old_fs);
-		DHD_ERROR(("%s: Failed to get information (%d)\n",
-				config_path, ret));
-		return ret;
-	}
-	set_fs(old_fs);
-
-	if (!(buf = MALLOC(dhd->osh, stat.size + 1))) {
-		DHD_ERROR(("Failed to allocate memory %llu bytes\n", stat.size));
-		return -ENOMEM;
-	}
-
-	if (!(fp = dhd_os_open_image(config_path)) ||
-			(len = dhd_os_get_image_block(buf, stat.size, fp)) < 0)
-		goto err;
-
-	buf[stat.size] = '\0';
-	for (p = buf; *p; p++) {
-		if (isspace(*p))
-			continue;
-		for (name = p++; *p && !isspace(*p); p++) {
-			if (*p == '=') {
-				*p = '\0';
-				p++;
-				for (value = p; *p && !isspace(*p); p++);
-				*p = '\0';
-				if ((ret = dhd_preinit_proc(dhd, ifidx, name, value)) < 0)
-					DHD_ERROR(("%s: %s=%s\n",
-							bcmerrorstr(ret), name, value));
-				break;
-			}
-		}
-	}
-	ret = 0;
-
-out:
-	if (fp)
-		dhd_os_close_image(fp);
-	if (buf)
-		MFREE(dhd->osh, buf, stat.size+1);
-	return ret;
-
-err:
-	ret = -1;
-	goto out;
-}
-#endif /* CONFIG_LGE_BCM432X_PATCH */
-
-#ifdef GET_CUSTOM_MAC_ENABLE
-static uint32 dhd_util_hex2num(uchar c)
-{
-	if (c >= '0' && c <= '9')
-		return c - '0';
-	if (c >= 'a' && c <= 'f')
-		return c - 'a' + 10;
-	if (c >= 'A' && c <= 'F')
-		return c - 'A' + 10;
-	return -1;
-}
-
-static int dhd_util_ascii_to_hex(char* keystr, uint32 keystrlen, char* dst)
-{
-#define TEMP_BUF_LEN 10
-	char temp_buf[TEMP_BUF_LEN] = {0,};
-	uint32 hex_len = keystrlen;
-	uint32 i1 = 0, i2 = 0, num1, num2;
-
-	if (!keystr) {
-		return -1;
-	}
-
-	if (hex_len > (TEMP_BUF_LEN*2)) {
-		DHD_ERROR((KERN_INFO "keystrlen is too long %u\n", keystrlen));
-		return -1;
-	}
-
-	while (hex_len)
-	{
-		num1 = dhd_util_hex2num(keystr[i1++]);
-		num2 = dhd_util_hex2num(keystr[i1++]);
-		if (num1 < 0 || num2 < 0)
-		{
-			// error
-			return -1;
-		}
-		num1 <<= 4;
-		temp_buf[i2++] = num1 | num2;
-		hex_len -= 2;
-	}
-
-	bcopy(temp_buf, dst, keystrlen/2);
-	return keystrlen/2;
-}
-
-static int dhd_custom_read_nvdata(
-		dhd_pub_t *dhd,
-		char *filename,
-		char *nvreadbuf,
-		uint nmemb
-		)
-{
-	mm_segment_t old_fs;
-	struct kstat stat;
-	struct file *fp = NULL;
-	unsigned int len;
-	char *buf = NULL;
-	int ret = 0;
-
-	if (!dhd || !filename || !nvreadbuf) {
-		return (ret = -1);
-	}
-
-	old_fs = get_fs();
-	set_fs(get_ds());
-	if ((ret = vfs_stat(filename, &stat))) {
-		set_fs(old_fs);
-		DHD_ERROR(("%s: Failed to get information (%d)\n",
-				filename, ret));
-		return ret;
-	}
-	set_fs(old_fs);
-
-	if (!(buf = MALLOC(dhd->osh, nmemb/*stat.size*/ + 1))) {
-		DHD_ERROR(("Failed to allocate memory nmemb : %u, stat.size : %llu bytes\n", nmemb, stat.size));
-		return (ret = -ENOMEM);
-	}
-
-	if (!(fp = dhd_os_open_image(filename)) ||
-			(len = dhd_os_get_image_block(buf, nmemb/*stat.size*/, fp)) < 0) {
-		DHD_ERROR(("Failed to read file"));
-		ret = -1;
-		goto out;
-	}
-
-	buf[nmemb] = '\0';
-	bcopy(buf, nvreadbuf, nmemb+1);
-
-out:
-	if (fp)
-		dhd_os_close_image(fp);
-	if (buf)
-		MFREE(dhd->osh, buf, nmemb+1);
-	return ret;
-}
-
-
-static bool dhd_check_nvmac_is_valid(char* nvmac)
-{
-	bool ret = TRUE;
-	const char init_val[3][ETHER_ADDR_LEN] = {
-		{0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
-		{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
-		{0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
-	};
-
-	if (!nvmac
-			|| !bcmp(nvmac, init_val[0], ETHER_ADDR_LEN)
-			|| !bcmp(nvmac, init_val[1], ETHER_ADDR_LEN)
-			|| !bcmp(nvmac, init_val[2], ETHER_ADDR_LEN)) {
-		ret = FALSE;
-	}
-	return ret;
-}
-
-static int dhd_get_curr_etheraddr(dhd_pub_t *dhd, char* macaddr)
-{
-	int ret = 0;
-	char buf[128]= {0,};
-
-	if (!dhd || !macaddr)
-		ret = -1;
-
-	if (!ret)	{
-		strcpy(buf, "cur_etheraddr");
-		ret = dhdcdc_query_ioctl(dhd, 0, WLC_GET_VAR, buf, sizeof(buf));
-		if (ret < 0) {
-			DHD_ERROR(("dhdcdc_query_ioctl: dhd_get_curr_etheraddr failed w/status %d\n", ret));
-		}
-		else {
-			bcopy(buf, macaddr, ETHER_ADDR_LEN);
-			ret = 0;
-		}
-	}
-
-	return ret;
-}
-#endif // GET_CUSTOM_MAC_ENABLE
 
 int
 dhd_preinit_ioctls(dhd_pub_t *dhd)
@@ -1687,66 +1324,11 @@ dhd_preinit_ioctls(dhd_pub_t *dhd)
 	int ret = 0;
 #ifdef GET_CUSTOM_MAC_ENABLE
 	struct ether_addr ea_addr;
-#if defined(CONFIG_LGE_BCM432X_PATCH)
-	char nvbuf_ether_addr_tmp[ETHER_ADDR_LEN*2 + 1] = {0,};		// +1 for NULL
-	char nvbuf_ether_addr[ETHER_ADDR_LEN] = {0,};
-#endif
 #endif /* GET_CUSTOM_MAC_ENABLE */
 
 	dhd_os_proto_block(dhd);
 
 #ifdef GET_CUSTOM_MAC_ENABLE
-#if defined(CONFIG_LGE_BCM432X_PATCH)
-	/* 
-	** Read MAC address from external customer place
-	** NOTE that default mac address has to be present in otp or nvram file to bring up
-	** firmware but unique per board mac address maybe provided by customer code
-	*/
-
-	// read NV MAC address
-	ret = dhd_custom_read_nvdata(dhd, NV_WIFI_MACADDR, nvbuf_ether_addr_tmp, ETHER_ADDR_LEN *2);
-	if (!ret) {
-		if (dhd_util_ascii_to_hex(nvbuf_ether_addr_tmp, ETHER_ADDR_LEN*2, nvbuf_ether_addr) <= 0) {
-			DHD_ERROR(("%s: mac convert error\n", __FUNCTION__));
-			ret = -1;
-		}
-	}
-
-	if (!ret) {
-		if (dhd_check_nvmac_is_valid(nvbuf_ether_addr) == TRUE)	{
-			//read current dhd mac...
-			if (!dhd_get_curr_etheraddr(dhd, ea_addr.octet)) {
-				if (bcmp(nvbuf_ether_addr, ea_addr.octet, ETHER_ADDR_LEN)){
-					// use NV mac...
-					bcopy(nvbuf_ether_addr, &ea_addr.octet, sizeof(struct ether_addr));
-				}
-				else {
-					DHD_ERROR(("%s: the value of NV & DHD MAC is same,"
-						"no need to set mac address, just skip... \n", __FUNCTION__));
-					ret = -1;
-				}
-			}
-			else {
-				DHD_ERROR(("%s: can't get current MAC address skip set mac address, error=%d\n", __FUNCTION__, ret));
-				ret = -1;
-			}
-		}
-		else {
-			DHD_ERROR(("%s: NV mac is invalid, no need to set mac address, just skip...\n", __FUNCTION__));
-			ret = -1;
-		}
-	}
-
-	if (!ret) {
-		bcm_mkiovar("cur_etheraddr", (void *)&ea_addr, ETHER_ADDR_LEN, buf, sizeof(buf));
-		ret = dhdcdc_set_ioctl(dhd, 0, WLC_SET_VAR, buf, sizeof(buf));
-		if (ret < 0) {
-			DHD_ERROR(("%s: can't set MAC address , error=%d\n", __FUNCTION__, ret));
-		}
-		else
-			memcpy(dhd->mac.octet, (void *)&ea_addr, ETHER_ADDR_LEN);
-	}
-#else
 	/*
 	** Read MAC address from external customer place
 	** NOTE that default mac address has to be present in otp or nvram file
@@ -1762,7 +1344,6 @@ dhd_preinit_ioctls(dhd_pub_t *dhd)
 		} else
 			memcpy(dhd->mac.octet, (void *)&ea_addr, ETHER_ADDR_LEN);
 	}
-#endif
 #endif /* GET_CUSTOM_MAC_ENABLE */
 
 #ifdef SET_RANDOM_MAC_SOFTAP
@@ -1789,10 +1370,6 @@ dhd_preinit_ioctls(dhd_pub_t *dhd)
 			memcpy(dhd->mac.octet, iovbuf, ETHER_ADDR_LEN);
 	}
 #endif /* SET_RANDOM_MAC_SOFTAP */
-
-#if defined(CONFIG_LGE_BCM432X_PATCH)
-	dhd_preinit_config(dhd, 0);
-#endif /* CONFIG_LGE_BCM432X_PATCH */
 
 	/* Set Country code */
 	if (dhd->dhd_cspec.ccode[0] != 0) {

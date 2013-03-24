@@ -35,11 +35,6 @@
 #include <wlioctl.h>
 #include <wl_iw.h>
 
-#if defined(CONFIG_LGE_BCM432X_PATCH)
-#include <asm/gpio.h>
-#include <linux/interrupt.h>
-#endif /* CONFIG_LGE_BCM432X_PATCH */
-
 #define WL_ERROR(x) printf x
 #define WL_TRACE(x)
 
@@ -106,9 +101,6 @@ int dhd_customer_oob_irq_map(unsigned long *irq_flags_ptr)
 	return (host_oob_irq);
 }
 #endif /* defined(OOB_INTR_ONLY) */
-#if defined(CONFIG_LGE_BCM432X_PATCH)
-#include "mach/io.h"
-#endif
 
 /* Customer function to control hw specific wlan gpios */
 void
@@ -118,10 +110,6 @@ dhd_customer_gpio_wlan_ctrl(int onoff)
 		case WLAN_RESET_OFF:
 			WL_TRACE(("%s: call customer specific GPIO to insert WLAN RESET\n",
 				__FUNCTION__));
-#if defined(CONFIG_LGE_BCM432X_PATCH)
-			gpio_set_value(177, 0);
-#endif
-
 #ifdef CUSTOMER_HW
 			bcm_wlan_power_off(2);
 #endif /* CUSTOMER_HW */
@@ -134,10 +122,6 @@ dhd_customer_gpio_wlan_ctrl(int onoff)
 		case WLAN_RESET_ON:
 			WL_TRACE(("%s: callc customer specific GPIO to remove WLAN RESET\n",
 				__FUNCTION__));
-#if defined(CONFIG_LGE_BCM432X_PATCH)
-			gpio_set_value(177, 1);
-			mdelay(200);
-#endif
 #ifdef CUSTOMER_HW
 			bcm_wlan_power_on(2);
 #endif /* CUSTOMER_HW */
@@ -150,10 +134,6 @@ dhd_customer_gpio_wlan_ctrl(int onoff)
 		case WLAN_POWER_OFF:
 			WL_TRACE(("%s: call customer specific GPIO to turn off WL_REG_ON\n",
 				__FUNCTION__));
-#if defined(CONFIG_LGE_BCM432X_PATCH)
-			gpio_set_value(177, 0);
-			
-#endif
 #ifdef CUSTOMER_HW
 			bcm_wlan_power_off(1);
 #endif /* CUSTOMER_HW */
@@ -162,10 +142,6 @@ dhd_customer_gpio_wlan_ctrl(int onoff)
 		case WLAN_POWER_ON:
 			WL_TRACE(("%s: call customer specific GPIO to turn on WL_REG_ON\n",
 				__FUNCTION__));
-#if defined(CONFIG_LGE_BCM432X_PATCH)
-			gpio_set_value(177, 1);
-			mdelay(200);
-#endif
 #ifdef CUSTOMER_HW
 			bcm_wlan_power_on(1);
 			/* Lets customer power to get stable */

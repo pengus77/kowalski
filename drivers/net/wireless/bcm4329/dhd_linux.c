@@ -61,11 +61,11 @@
 #ifdef CONFIG_HAS_WAKELOCK
 #include <linux/wakelock.h>
 #endif
-#if defined(CONFIG_LGE_BCM432X_PATCH)
+#if defined(CONFIG_MACH_STAR)
 #undef alloc_etherdev
 #define alloc_etherdev(sizeof_priv) \
 	alloc_netdev(sizeof_priv, "wlan%d", ether_setup)
-#endif /* CONFIG_LGE_BCM432X_PATCH */
+#endif /* CONFIG_MACH_STAR */
 #ifdef CUSTOMER_HW2
 #include <linux/platform_device.h>
 #ifdef CONFIG_WIFI_CONTROL_FUNC
@@ -356,9 +356,9 @@ struct semaphore dhd_registration_sem;
 /* load firmware and/or nvram values from the filesystem */
 module_param_string(firmware_path, firmware_path, MOD_PARAM_PATHLEN, 0);
 module_param_string(nvram_path, nvram_path, MOD_PARAM_PATHLEN, 0);
-#if defined(CONFIG_LGE_BCM432X_PATCH)
+#if defined(CONFIG_MACH_STAR)
 module_param_string(config_path, config_path, MOD_PARAM_PATHLEN, 0);
-#endif /* CONFIG_LGE_BCM432X_PATCH */
+#endif /* CONFIG_MACH_STAR */
 
 /* Error bits */
 module_param(dhd_msg_level, int, 0);
@@ -3284,15 +3284,6 @@ dhd_wait_pend8021x(struct net_device *dev)
 	}
 	return pend;
 }
-
-#if defined(CONFIG_LGE_BCM432X_PATCH) && defined(CONFIG_BRCM_USE_DEEPSLEEP)
-dhd_pub_t * get_dhd_pub_from_dev(struct net_device *dev)
-{
-	dhd_info_t *dhd = *(dhd_info_t **)netdev_priv(dev);
-
-	return &dhd->pub;
-}
-#endif /* CONFIG_LGE_BCM432X_PATCH && CONFIG_BRCM_USE_DEEPSLEEP */
 
 #ifdef DHD_DEBUG
 int

@@ -212,7 +212,7 @@ typedef struct iscan_info {
 	iscan_buf_t * list_hdr;
 	iscan_buf_t * list_cur;
 
-
+	
 	long sysioc_pid;
 	struct semaphore sysioc_sem;
 	struct completion sysioc_exited;
@@ -1552,9 +1552,6 @@ wl_iw_send_priv_event(
 	return 0;
 }
 
-#if defined(CONFIG_LGE_BCM432X_PATCH) && defined(CONFIG_BRCM_USE_DEEPSLEEP)
-extern int dhd_deep_sleep(struct net_device *dev, int flag);
-#endif /* CONFIG_LGE_BCM432X_PATCH && CONFIG_BRCM_USE_DEEPSLEEP */
 
 int
 wl_control_wl_start(struct net_device *dev)
@@ -1578,10 +1575,6 @@ wl_control_wl_start(struct net_device *dev)
 	dhd_os_start_lock(iw->pub);
 
 	if (g_onoff == G_WLAN_SET_OFF) {
-#if defined(CONFIG_LGE_BCM432X_PATCH) && defined(CONFIG_BRCM_USE_DEEPSLEEP)
-		/* Use Deep Sleep instead of WL RESET */
-		dhd_deep_sleep(dev, FALSE);
-#else /* CONFIG_LGE_BCM432X_PATCH && CONFIG_BRCM_USE_DEEPSLEEP */
 		dhd_customer_gpio_wlan_ctrl(WLAN_RESET_ON);
 
 #if defined(BCMLXSDMMC)
@@ -1597,7 +1590,6 @@ wl_control_wl_start(struct net_device *dev)
 			dhd_dev_init_ioctl(dev);
 			g_onoff = G_WLAN_SET_ON;
 		}
-#endif /* CONFIG_LGE_BCM432X_PATCH && CONFIG_BRCM_USE_DEEPSLEEP */
 	}
 	WL_TRACE(("Exited %s \n", __FUNCTION__));
 
@@ -1639,12 +1631,7 @@ wl_iw_control_wl_off(
 		g_iscan->iscan_state = ISCAN_STATE_IDLE;
 #endif
 
-#if defined(CONFIG_BRCM_USE_DEEPSLEEP)
-		/* Use Deep Sleep instead of WL Reset*/
-		dhd_deep_sleep(dev, TRUE);
-#else
 		dhd_dev_reset(dev, 1);
-#endif /* CONFIG_BRCM_USE_DEEPSLEEP */
 
 #if defined(WL_IW_USE_ISCAN)
 #if !defined(CSCAN)

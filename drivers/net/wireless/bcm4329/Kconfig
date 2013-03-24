@@ -12,18 +12,6 @@ config BCM4329
 	  If you choose to build a module, it'll be called dhd. Say M if
 	  unsure.
 
-config LGE_BCM432X_PATCH
-	bool "BCM432X Patch by LGE"
-	default y
-	depends on BCM4329
-
-config BRCM_USE_DEEPSLEEP
-        bool "Use deepsleep instead of dhd_dev_reset"
-        default n
-        depends on BCM4329
-        ---help---
-           Use deepsleep instead of dhd_dev_reset and controlling GPIO when driver start or stop.
-
 config BCM4329_FIRST_SCAN
 	depends on BCM4329
 	bool "first scan support"

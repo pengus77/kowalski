@@ -447,9 +447,9 @@ extern uint dhd_pktgen_len;
 #define MOD_PARAM_PATHLEN	2048
 extern char fw_path[MOD_PARAM_PATHLEN];
 extern char nv_path[MOD_PARAM_PATHLEN];
-#if defined(CONFIG_LGE_BCM432X_PATCH)
+#if defined(CONFIG_MACH_STAR)
 extern char config_path[MOD_PARAM_PATHLEN];
-#endif /* CONFIG_LGE_BCM432X_PATCH */
+#endif /* CONFIG_MACH_STAR */
 
 /* For supporting multiple interfaces */
 #define DHD_MAX_IFS	16
