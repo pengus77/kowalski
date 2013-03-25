@@ -49,12 +49,12 @@ static void *wifi_status_cb_devid;
 static struct clk *wifi_32k_clk;
 
 static int star_wifi_status_register(
-		void (*sdhcicallback)(int card_present, void *dev_id),
+		void (*callback)(int card_present, void *dev_id),
 		void *dev_id)
 {
 	if (wifi_status_cb)
 		return -EAGAIN;
-	wifi_status_cb = sdhcicallback;
+	wifi_status_cb = callback;
 	wifi_status_cb_devid = dev_id;
 	return 0;
 }
@@ -73,13 +73,13 @@ static int star_wifi_power(int on)
 {
 	pr_debug("%s: %d\n", __func__, on);
 
+	gpio_set_value(STAR_WLAN_RST, on);
+	mdelay(200);
+
 	if (on)
 		clk_enable(wifi_32k_clk);
 	else
 		clk_disable(wifi_32k_clk);
-
-	gpio_set_value(STAR_WLAN_RST, on);
-	mdelay(200);
 
 	return 0;
 }
@@ -89,7 +89,6 @@ static int star_wifi_reset(int on)
 	pr_debug("%s: do nothing\n", __func__);
 	return 0;
 }
-
 
 static struct wifi_platform_data star_wifi_control = {
 	.set_power      = star_wifi_power,
@@ -144,6 +143,7 @@ static struct resource sdhci_resource3[] = {
 	},
 };
 
+#ifdef CONFIG_MMC_EMBEDDED_SDIO
 static struct embedded_sdio_data embedded_sdio_data0 = {
 	.cccr   = {
 		.sdio_vsn       = 2,
@@ -158,6 +158,7 @@ static struct embedded_sdio_data embedded_sdio_data0 = {
 		.device         = 0x4329,
 	},
 };
+#endif
 
 static struct tegra_sdhci_platform_data tegra_sdhci_platform_data0 = {
 	.mmc_data = {
@@ -222,6 +223,17 @@ static struct platform_device tegra_sdhci_device3 = {
 	},
 };
 
+#ifdef CONFIG_TEGRA_PREPOWER_WIFI
+static int __init star_wifi_prepower(void)
+{
+	star_wifi_power(1);
+
+	return 0;
+}
+
+subsys_initcall_sync(star_wifi_prepower);
+#endif
+
 static int __init star_wifi_init(void)
 {
 	wifi_32k_clk = clk_get_sys(NULL, "blink");
@@ -229,16 +241,16 @@ static int __init star_wifi_init(void)
 		pr_err("%s: unable to get blink clock\n", __func__);
 		return PTR_ERR(wifi_32k_clk);
 	}
-	clk_enable(wifi_32k_clk);
-	platform_device_register(&tegra_sdhci_device0);
+
 	gpio_request(STAR_WLAN_RST, "wlan_rst");
 
-	tegra_gpio_enable(STAR_WLAN_RST);
-
 	gpio_direction_output(STAR_WLAN_RST, 0);
-	tegra_sdhci_platform_data0.cd_gpio = STAR_WLAN_RST;
 
 	platform_device_register(&star_wifi_device);
+
+	device_init_wakeup(&star_wifi_device.dev, 1);
+	device_set_wakeup_enable(&star_wifi_device.dev, 0);
+
 	return 0;
 }
 
@@ -345,8 +357,7 @@ static int tegra_get_partition_info_by_name(
 	return -1;
 }
 
-
-static int __init star_emmc_init(void)
+int __init star_sdhci_init(void)
 {
 #ifdef CONFIG_EMBEDDED_MMC_START_OFFSET
 	unsigned long long start = 0, length = 0;
@@ -355,28 +366,14 @@ static int __init star_emmc_init(void)
 
 	/*look for mbr partition*/
 	err = tegra_get_partition_info_by_name("mbr", &start, &length, &sector_size);
-	tegra_sdhci_platform_data3.startoffset = start * (unsigned long long)sector_size;
-	printk(KERN_INFO "star_init_sdhci: MBR: err: %d, sector_start: %d, sector_length: %d, sector_size: %d, startoffset: %d\n", err, (int) start, (int) length, (int) sector_size, tegra_sdhci_platform_data3.startoffset);
+	tegra_sdhci_platform_data3.start_offset = start * (unsigned long long)sector_size;
+	printk(KERN_INFO "star_init_sdhci: MBR: err: %d, sector_start: %d, sector_length: %d, sector_size: %d, startoffset: %d\n", err, (int) start, (int) length, (int) sector_size, tegra_sdhci_platform_data3.start_offset);
 #endif
 
 	platform_device_register(&tegra_sdhci_device3);
-
-	return 0;
-}
-
-static int __init star_microsd_init(void)
-{
-	tegra_gpio_enable(STAR_EXT_SDCARD_DETECT);
-
 	platform_device_register(&tegra_sdhci_device2);
+	platform_device_register(&tegra_sdhci_device0);
 
-	return 0;
-}
-
-int __init star_sdhci_init(void)
-{
-	star_emmc_init();
-	star_microsd_init();
 	star_wifi_init();
 
 	return 0;

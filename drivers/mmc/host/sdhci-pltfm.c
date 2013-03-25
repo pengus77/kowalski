@@ -203,21 +203,12 @@ int sdhci_pltfm_suspend(struct platform_device *dev, pm_message_t state)
 		dev_err(&dev->dev, "suspend failed, error = %d\n", ret);
 		return ret;
 	}
-	
-#if defined (CONFIG_MACH_STAR)
-	if(host->irq==INT_SDMMC1)
-		enable_irq_wake(host->irq);
-#endif
 
 	if (host->ops && host->ops->suspend)
 		ret = host->ops->suspend(host, state);
 	if (ret) {
 		dev_err(&dev->dev, "suspend hook failed, error = %d\n", ret);
 		sdhci_resume_host(host);
-#if defined (CONFIG_MACH_STAR)
-	if(host->irq == INT_SDMMC1)
-		disable_irq_wake(host->irq);
-#endif
 	}
 
 	return ret;
@@ -228,12 +219,6 @@ int sdhci_pltfm_resume(struct platform_device *dev)
 {
 	struct sdhci_host *host = platform_get_drvdata(dev);
 	int ret = 0;
-
-#if defined (CONFIG_MACH_STAR)
-	if(host->irq==INT_SDMMC1)
-		disable_irq_wake(host->irq);
-#endif
-
 
 	if (host->ops && host->ops->resume)
 		ret = host->ops->resume(host);

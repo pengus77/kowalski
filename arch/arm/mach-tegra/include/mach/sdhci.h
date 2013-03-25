@@ -41,7 +41,7 @@ struct tegra_sdhci_platform_data {
 	struct mmc_platform_data mmc_data;
 
 #ifdef CONFIG_EMBEDDED_MMC_START_OFFSET
-	unsigned int startoffset;
+	unsigned int start_offset;
 #endif
 };
 
