@@ -2636,6 +2636,13 @@ static int __init tegra_udc_probe(struct platform_device *pdev)
 		tegra_usb_phy_power_off(udc->phy);
 #endif
 
+#if defined CONFIG_MACH_STAR
+	err = sysfs_create_link(&pdev->dev.parent->kobj,
+			&pdev->dev.kobj, "fsl-tegra-udc");
+	if (err)
+		goto err_del_udc;
+#endif
+
 	DBG("%s(%d) END\n", __func__, __LINE__);
 	return 0;
 

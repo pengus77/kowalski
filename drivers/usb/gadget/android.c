@@ -567,16 +567,6 @@ static int mass_storage_function_init(struct android_usb_function *f,
 		return err;
 	}
 
-#if defined (CONFIG_MACH_STAR)
-	err = sysfs_create_link(&f->dev->kobj,
-				&common->luns[0].dev.kobj,
-				"lun1");
-	if (err) {
-		kfree(config);
-		return err;
-	}
-#endif
-
 	config->common = common;
 	f->config = config;
 	return 0;
