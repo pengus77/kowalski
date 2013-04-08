@@ -208,10 +208,12 @@ static int regulator_check_current_limit(struct regulator_dev *rdev,
 		return -EPERM;
 	}
 
+#ifndef CONFIG_MACH_STAR
 	if (*max_uA > rdev->constraints->max_uA)
 		*max_uA = rdev->constraints->max_uA;
 	if (*min_uA < rdev->constraints->min_uA)
 		*min_uA = rdev->constraints->min_uA;
+#endif
 
 	if (*min_uA > *max_uA) {
 		rdev_err(rdev, "unsupportable current range: %d-%duA\n",
