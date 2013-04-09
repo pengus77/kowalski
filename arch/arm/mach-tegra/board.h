@@ -72,9 +72,9 @@
 #define COMMCHIP_UNKNOWN		0
 #define COMMCHIP_NOCHIP			1
 #define COMMCHIP_BROADCOM_BCM4329	2
-#define COMMCHIP BROADCOM_BCM4330	3
+#define COMMCHIP_BROADCOM_BCM4330	3
 #define COMMCHIP_MARVELL_SD8797		4
-
+#define COMMCHIP_TI_WL18XX		5
 
 struct memory_accessor;
 
@@ -102,6 +102,7 @@ void __init tegra_protected_aperture_init(unsigned long aperture);
 int  __init tegra_init_board_info(void);
 void tegra_move_framebuffer(unsigned long to, unsigned long from,
 	unsigned long size);
+void tegra_clear_framebuffer(unsigned long to, unsigned long size);
 bool is_tegra_debug_uartport_hs(void);
 int get_tegra_uart_debug_port_id(void);
 int arb_lost_recovery(int scl_gpio, int sda_gpio);
@@ -111,6 +112,8 @@ extern unsigned long tegra_bootloader_fb_size;
 #if defined (CONFIG_MACH_STAR)
 extern u32 tegra_bootloader_fb_colorformat;
 #endif
+extern unsigned long tegra_bootloader_fb2_start;
+extern unsigned long tegra_bootloader_fb2_size;
 extern unsigned long tegra_fb_start;
 extern unsigned long tegra_fb_size;
 extern unsigned long tegra_fb2_start;

@@ -3,7 +3,7 @@
  *
  * structure declarations for nvmem and nvmap user-space ioctls
  *
- * Copyright (c) 2009-2012, NVIDIA Corporation.
+ * Copyright (c) 2009-2012, NVIDIA CORPORATION. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -49,6 +49,7 @@
 #define NVMAP_HANDLE_CACHE_FLAG      (0x3ul << 0)
 
 #define NVMAP_HANDLE_SECURE          (0x1ul << 2)
+#define NVMAP_HANDLE_ZEROED_PAGES    (0x1ul << 3)
 
 #if defined(__KERNEL__)
 
@@ -122,6 +123,8 @@ void nvmap_unpin_handles(struct nvmap_client *client,
 
 struct nvmap_handle_ref *nvmap_duplicate_handle_id(struct nvmap_client *client,
 						   unsigned long id);
+
+int nvmap_mark_global(struct nvmap_client *client, struct nvmap_handle_ref *r);
 
 struct nvmap_platform_carveout {
 	const char *name;

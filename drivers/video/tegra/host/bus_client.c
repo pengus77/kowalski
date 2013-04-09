@@ -159,7 +159,8 @@ static int nvhost_channelopen(struct inode *inode, struct file *filp)
 	}
 	filp->private_data = priv;
 	priv->ch = ch;
-	nvhost_module_add_client(ch->dev, priv);
+	if(nvhost_module_add_client(ch->dev, priv))
+		goto fail;
 
 	if (ch->ctxhandler && ch->ctxhandler->alloc) {
 		priv->hwctx = ch->ctxhandler->alloc(ch->ctxhandler, ch);
@@ -656,4 +657,16 @@ fail:
 	dev_err(&dev->dev, "failed to get register memory\n");
 
 	return -ENXIO;
+}
+
+void nvhost_client_device_put_resources(struct nvhost_device *dev)
+{
+	struct resource *r;
+
+	r = nvhost_get_resource(dev, IORESOURCE_MEM, 0);
+	BUG_ON(!r);
+
+	iounmap(dev->aperture);
+
+	release_mem_region(r->start, resource_size(r));
 }

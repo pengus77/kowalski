@@ -2,7 +2,7 @@
  * arch/arm/mach-tegra/board-cardhu-kbc.c
  * Keys configuration for Nvidia tegra3 cardhu platform.
  *
- * Copyright (C) 2011 NVIDIA, Inc.
+ * Copyright (C) 2011-2013 NVIDIA, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -86,7 +86,8 @@ int __init cardhu_kbc_init(void)
 
 	tegra_get_board_info(&board_info);
 	if ((board_info.board_id == BOARD_E1198) ||
-			(board_info.board_id == BOARD_E1291))
+			(board_info.board_id == BOARD_E1291) ||
+			(board_info.board_id == BOARD_PM315))
 		return 0;
 
 	pr_info("Registering tegra-kbc\n");
@@ -120,6 +121,17 @@ int __init cardhu_scroll_init(void)
 		.type = EV_KEY,			\
 		.wakeup = _iswake,		\
 		.debounce_interval = 10,	\
+	}
+
+#define GPIO_SW_KEY(_id, _gpio, _iswake)	\
+	{					\
+		.code = _id,			\
+		.gpio = _gpio,			\
+		.active_low = 1,		\
+		.desc = #_id,			\
+		.type = EV_SW,			\
+		.wakeup = _iswake,		\
+		.debounce_interval = 1,		\
 	}
 
 #define GPIO_IKEY(_id, _irq, _iswake, _deb)	\
@@ -165,6 +177,7 @@ static struct gpio_keys_button cardhu_keys_e1291[] = {
 	[4] = GPIO_KEY(KEY_BACK, PQ0, 0),
 	[5] = GPIO_KEY(KEY_MENU, PQ1, 0),
 	[6] = GPIO_IKEY(KEY_POWER, TPS6591X_IRQ_BASE + TPS6591X_INT_PWRON, 1, 100),
+	[7] = GPIO_SW_KEY(SW_LID, TPS6591X_GPIO_5, 0),
 };
 
 static struct gpio_keys_button cardhu_keys_e1291_a04[] = {
@@ -176,6 +189,7 @@ static struct gpio_keys_button cardhu_keys_e1291_a04[] = {
 	[5] = GPIO_KEY(KEY_MENU, PQ1, 0),
 	[6] = GPIO_KEY(KEY_RESERVED, PV0, 1),
 	[7] = GPIO_IKEY(KEY_POWER, TPS6591X_IRQ_BASE + TPS6591X_INT_PWRON, 1, 100),
+	[8] = GPIO_SW_KEY(SW_LID, TPS6591X_GPIO_5, 0),
 };
 
 static struct gpio_keys_platform_data cardhu_keys_e1291_pdata = {
@@ -227,6 +241,7 @@ int __init cardhu_keys_init(void)
 	tegra_get_board_info(&board_info);
 	if (!((board_info.board_id == BOARD_E1198) ||
 		(board_info.board_id == BOARD_E1291) ||
+		(board_info.board_id == BOARD_PM315) ||
 		(board_info.board_id == BOARD_E1186) ||
 		(board_info.board_id == BOARD_E1257) ||
 		(board_info.board_id == BOARD_PM305) ||
@@ -287,6 +302,7 @@ int __init cardhu_keys_init(void)
 	if ((board_info.board_id == BOARD_E1257) ||
 		(board_info.board_id == BOARD_E1186) ||
 		(board_info.board_id == BOARD_PM305) ||
+		(board_info.board_id == BOARD_PM315) ||
 		(board_info.board_id == BOARD_PM311) ||
 		(board_info.board_id == BOARD_PM267) ||
 		(board_info.board_id == BOARD_PM269)) {

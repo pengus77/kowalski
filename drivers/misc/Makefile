@@ -62,6 +62,7 @@ endif
 obj-$(CONFIG_INV_SENSORS)      += inv_mpu/
 obj-$(CONFIG_BD_ADDRESS)	+= bd_address.o
 obj-y				+= bthid/
+CFLAGS_tegra-cryptodev.o	 = -Werror
 obj-$(CONFIG_TEGRA_CRYPTO_DEV)	+= tegra-cryptodev.o
 obj-$(CONFIG_TEGRA_BB_SUPPORT)	+= tegra-baseband/
 obj-$(CONFIG_TEGRA_CEC_SUPPORT)	+= tegra-cec/
@@ -70,3 +71,4 @@ obj-$(CONFIG_THERM_EST)		+= therm_est.o
 obj-$(CONFIG_STAR_TOUCH_LED)	+= star_led.o
 obj-$(CONFIG_TSPDRV)            += tspdrv/
 obj-$(CONFIG_STAR_HALL)		+= bu52031nvx.o
+obj-$(CONFIG_TEGRA_THROUGHPUT)	+= tegra-throughput.o
