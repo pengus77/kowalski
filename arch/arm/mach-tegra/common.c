@@ -85,9 +85,6 @@
 
 unsigned long tegra_bootloader_fb_start;
 unsigned long tegra_bootloader_fb_size;
-#if defined (CONFIG_MACH_STAR)
-u32 tegra_bootloader_fb_colorformat;
-#endif
 unsigned long tegra_bootloader_fb2_start;
 unsigned long tegra_bootloader_fb2_size;
 unsigned long tegra_fb_start;
@@ -823,9 +820,6 @@ void tegra_move_framebuffer(unsigned long to, unsigned long from,
 	void __iomem *to_io;
 	void *from_virt;
 	unsigned long i;
-#if defined (CONFIG_MACH_STAR)
-	unsigned long j;
-#endif
 
 	BUG_ON(PAGE_ALIGN((unsigned long)to) != (unsigned long)to);
 	BUG_ON(PAGE_ALIGN(from) != from);
@@ -852,23 +846,6 @@ void tegra_move_framebuffer(unsigned long to, unsigned long from,
 			goto out;
 		}
 
-#if defined (CONFIG_MACH_STAR)
-#define Get565R24Value(c) ( ((c) & 0xF800) >> 11 )
-#define Get565G24Value(c) ( ((c) & 0x7E0 ) >> 5)
-#define Get565B24Value(c) (  (c) & 0x1F)
-#define Get565RGB24(c)    ( (Get565B24Value(c) << 3) << 16 | (Get565G24Value(c) << 2) << 8 | (Get565R24Value(c) << 3) )
-
-		if (tegra_bootloader_fb_colorformat >> 24 == 16) 
-		{
-			j = 0;
-			for (i = 0; i < size; i += 4)
-			{
-				writel(Get565RGB24(readw(from_io + j)), to_io + i);
-				j += 2;
-			}	
-		}
-		else
-#endif
 		for (i = 0; i < size; i += 4)
 			writel(readl(from_io + i), to_io + i);
 

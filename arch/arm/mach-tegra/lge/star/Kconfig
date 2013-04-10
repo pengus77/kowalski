@@ -124,11 +124,3 @@ config MACH_STAR_DUMP_GPIO
 	bool "GPIO Dump to debug sleep current"
 	help
 	  Support for the LGE STAR GPIO DUMP	  
-
-config CM_BOOTLOADER_COMPAT
-    bool "CyanogenMod boot with the older (pre-ICS) bootloaders"
-	default n
-	depends on MACH_STAR
-	help
-	  Allow CM (and other custom builds) to run on the older (and 
-          unlocked) bootloaders
