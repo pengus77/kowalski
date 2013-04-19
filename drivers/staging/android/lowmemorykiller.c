@@ -91,13 +91,8 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 	int selected_oom_adj;
 	int array_size = ARRAY_SIZE(lowmem_adj);
 	int other_free = global_page_state(NR_FREE_PAGES);
-#ifdef CONFIG_SWAP
-	int other_file = global_page_state(NR_FILE_PAGES) +
-						global_page_state(NR_INACTIVE_FILE);
-#else
 	int other_file = global_page_state(NR_FILE_PAGES) -
 						global_page_state(NR_SHMEM);
-#endif
 
 	/*
 	 * If we already have a death outstanding, then
