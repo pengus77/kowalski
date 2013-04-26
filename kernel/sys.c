@@ -426,11 +426,6 @@ EXPORT_SYMBOL_GPL(kernel_power_off);
 
 static DEFINE_MUTEX(reboot_mutex);
 
-#if defined (CONFIG_MACH_STAR)
-extern void tegra_cpu_lock_speed(unsigned long min_rate, unsigned long max_rate, int timeout_ms);
-extern void tegra_dvfs_disable_core_cpu(void);
-#endif
-
 /*
  * Reboot system call: for obvious reasons only root may call it,
  * and even root needs to set up some magic numbers in the registers
@@ -464,12 +459,6 @@ SYSCALL_DEFINE4(reboot, int, magic1, int, magic2, unsigned int, cmd,
 		cmd = LINUX_REBOOT_CMD_HALT;
 
 	mutex_lock(&reboot_mutex);
-#if defined (CONFIG_MACH_STAR)	
-#ifdef CONFIG_TEGRA_CPU_FREQ_LOCK
-	tegra_cpu_lock_speed(1000000, 0, 0);
-	tegra_dvfs_disable_core_cpu();
-#endif
-#endif
 	switch (cmd) {
 	case LINUX_REBOOT_CMD_RESTART:
 		kernel_restart(NULL);
