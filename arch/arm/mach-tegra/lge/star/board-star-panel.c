@@ -1158,6 +1158,18 @@ int __init star_panel_init(void)
 	tegra_move_framebuffer(tegra_fb_start, tegra_bootloader_fb_start,
 			min(tegra_fb_size, tegra_bootloader_fb_size));
 
+	/*
+	 * If the bootloader fb2 is valid, copy it to the fb2, or else
+	 * clear fb2 to avoid garbage on dispaly2.
+	 */
+	if (tegra_bootloader_fb2_size)
+		tegra_move_framebuffer(tegra_fb2_start,
+			tegra_bootloader_fb2_start,
+			min(tegra_fb2_size, tegra_bootloader_fb2_size));
+	else
+		tegra_clear_framebuffer(tegra_fb2_start, tegra_fb2_size);
+
+
 #if defined(CONFIG_TEGRA_GRHOST) && defined(CONFIG_TEGRA_DC)
 	if (!err)
 		err = nvhost_device_register(&star_disp1_device);
