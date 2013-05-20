@@ -2213,7 +2213,11 @@ dhd_attach(osl_t *osh, struct dhd_bus *bus, uint bus_hdrlen, void *dev)
 #endif
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
+#if defined(CONFIG_MACH_STAR)
+	dhd->early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN - 1;
+#else
 	dhd->early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 20;
+#endif
 	dhd->early_suspend.suspend = dhd_early_suspend;
 	dhd->early_suspend.resume = dhd_late_resume;
 	register_early_suspend(&dhd->early_suspend);
