@@ -107,4 +107,5 @@ void star_usb_init(void)
 
 	/* Added For USB Wakeup */
 	tegra_pm_irq_set_wake_type(INT_USB, IRQF_TRIGGER_RISING);
+	enable_irq_wake(INT_USB);
 }
