@@ -74,7 +74,6 @@ static int star_wifi_power(int on)
 	pr_debug("%s: %d\n", __func__, on);
 
 	gpio_set_value(STAR_WLAN_RST, on);
-	mdelay(200);
 
 	if (on)
 		clk_enable(wifi_32k_clk);
