@@ -1427,7 +1427,11 @@ SND_SOC_DAPM_MUX("AIF2DAC Mux", SND_SOC_NOPM, 0, 0, &aif2dac_mux),
 SND_SOC_DAPM_MUX("AIF2ADC Mux", SND_SOC_NOPM, 0, 0, &aif2adc_mux),
 
 SND_SOC_DAPM_AIF_IN("AIF3DACDAT", "AIF3 Playback", 0, SND_SOC_NOPM, 0, 0),
+#if defined (CONFIG_MACH_STAR)
+SND_SOC_DAPM_AIF_IN("AIF3ADCDAT", "AIF3 Capture", 0, SND_SOC_NOPM, 0, 0),
+#else
 SND_SOC_DAPM_AIF_OUT("AIF3ADCDAT", "AIF3 Capture", 0, SND_SOC_NOPM, 0, 0),
+#endif
 
 SND_SOC_DAPM_SUPPLY("TOCLK", WM8994_CLOCKING_1, 4, 0, NULL, 0),
 
@@ -2413,15 +2417,6 @@ static int wm8994_hw_params(struct snd_pcm_substream *substream,
 			    lrclk);
 	snd_soc_update_bits(codec, rate_reg, WM8994_AIF1_SR_MASK |
 			    WM8994_AIF1CLK_RATE_MASK, rate_val);
-
-#if defined (CONFIG_MACH_STAR)
-#ifdef LGE_CHANGE_I2S_FOR_VOICE_CALL
-	if(params_rate(params) == 8000)
-	{
-		snd_soc_update_bits(codec, aif2_reg, WM8994_AIF2_MONO, aif2);  // aif2 mono setting test mint.choi
-	}
-#endif
-#endif	
 
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		switch (dai->id) {
