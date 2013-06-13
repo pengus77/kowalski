@@ -24,7 +24,7 @@
 #include <linux/gpio.h>
 #include <linux/switch.h>
 
-#include <mach/tegra_wm8994_pdata.h>
+#include <mach/tegra_asoc_pdata.h>
 #include <linux/mfd/wm8994/pdata.h>
 
 #include <mach-tegra/gpio-names.h>
@@ -69,7 +69,7 @@ static struct i2c_board_info __initdata wm8994_board_info[] = {
 	},
 };
 
-static struct tegra_wm8994_platform_data star_audio_pdata = {
+static struct tegra_asoc_platform_data star_audio_pdata = {
 	.name				= "h2w",
 	.gpio_hook  		= TEGRA_GPIO_HP_HOOK,
 	.gpio_ear_mic		= TEGRA_GPIO_EAR_MIC,

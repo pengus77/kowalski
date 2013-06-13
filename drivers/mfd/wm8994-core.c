@@ -32,7 +32,7 @@
 
 #define GPIO_WM8994_LDO_EN     83 /* TEGRA_GPIO_PK3 */
 
-extern bool in_call_state();
+extern bool tegra_is_voice_call_active();
 #endif
 
 static int wm8994_read(struct wm8994 *wm8994, unsigned short reg,
@@ -205,7 +205,7 @@ static int wm8994_suspend(struct device *dev)
 	int ret;
 
 #if defined(CONFIG_MACH_STAR)
-	if(in_call_state())
+	if(tegra_is_voice_call_active())
 		return 0;
 #endif
 
@@ -259,7 +259,7 @@ static int wm8994_resume(struct device *dev)
 	int ret, i;
 
 #if defined(CONFIG_MACH_STAR)
-	if(in_call_state())
+	if(tegra_is_voice_call_active())
 		return 0;
 #endif
 

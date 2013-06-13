@@ -48,7 +48,7 @@
 
 static struct snd_soc_codec *wm8994_codec;
 
-extern bool in_call_state();
+extern bool tegra_is_voice_call_active();
 #endif
 
 static int wm8994_drc_base[] = {
@@ -903,7 +903,7 @@ static int aif1clk_ev(struct snd_soc_dapm_widget *w,
 		wm8994->aif1clk_enable = 1;
 		break;
 	case SND_SOC_DAPM_POST_PMD:
-		wm8994->aif1clk_disable = 1;
+		wm8994->aif1clk_enable = 1;
 		break;
 	}
 
@@ -921,7 +921,7 @@ static int aif2clk_ev(struct snd_soc_dapm_widget *w,
 		wm8994->aif2clk_enable = 1;
 		break;
 	case SND_SOC_DAPM_POST_PMD:
-		wm8994->aif2clk_disable = 1;
+		wm8994->aif2clk_enable = 1;
 		break;
 	}
 
@@ -1330,25 +1330,6 @@ SND_SOC_DAPM_SUPPLY("DSP1CLK", WM8994_CLOCKING_1, 3, 0, NULL, 0),
 SND_SOC_DAPM_SUPPLY("DSP2CLK", WM8994_CLOCKING_1, 2, 0, NULL, 0),
 SND_SOC_DAPM_SUPPLY("DSPINTCLK", WM8994_CLOCKING_1, 1, 0, NULL, 0),
 
-#if defined (CONFIG_MACH_STAR)
-SND_SOC_DAPM_AIF_OUT("AIF1ADC1L", "AIF1 Capture",
-		     0, WM8994_POWER_MANAGEMENT_4, 9, 0),
-SND_SOC_DAPM_AIF_OUT("AIF1ADC1R", "AIF1 Capture",
-		     0, WM8994_POWER_MANAGEMENT_4, 8, 0),
-
-/* Define AIF1DAC1R and AIF1DAC1L to SND_SOC_NOPM for prevent no sound issue */
-SND_SOC_DAPM_AIF_IN("AIF1DAC1L", NULL, 0, SND_SOC_NOPM, 0, 0),
-SND_SOC_DAPM_AIF_IN("AIF1DAC1R", NULL, 0, SND_SOC_NOPM, 0, 0),
-
-SND_SOC_DAPM_AIF_OUT("AIF1ADC2L", "AIF1 Capture",
-		     0, WM8994_POWER_MANAGEMENT_4, 11, 0),
-SND_SOC_DAPM_AIF_OUT("AIF1ADC2R", "AIF1 Capture",
-		     0, WM8994_POWER_MANAGEMENT_4, 10, 0),
-SND_SOC_DAPM_AIF_IN("AIF1DAC2L", NULL, 0,
-		    WM8994_POWER_MANAGEMENT_5, 11, 0),
-SND_SOC_DAPM_AIF_IN("AIF1DAC2R", NULL, 0,
-		    WM8994_POWER_MANAGEMENT_5, 10, 0),
-#else
 SND_SOC_DAPM_AIF_OUT("AIF1ADC1L", NULL,
 		     0, WM8994_POWER_MANAGEMENT_4, 9, 0),
 SND_SOC_DAPM_AIF_OUT("AIF1ADC1R", NULL,
@@ -1370,7 +1351,6 @@ SND_SOC_DAPM_AIF_IN_E("AIF1DAC2L", NULL, 0,
 SND_SOC_DAPM_AIF_IN_E("AIF1DAC2R", NULL, 0,
 		      WM8994_POWER_MANAGEMENT_5, 10, 0, wm8958_aif_ev,
 		      SND_SOC_DAPM_POST_PMU | SND_SOC_DAPM_POST_PMD),
-#endif
 
 SND_SOC_DAPM_MIXER("AIF1ADC1L Mixer", SND_SOC_NOPM, 0, 0,
 		   aif1adc1l_mix, ARRAY_SIZE(aif1adc1l_mix)),
@@ -1399,16 +1379,6 @@ SND_SOC_DAPM_AIF_OUT("AIF2ADCL", NULL, 0,
 		     WM8994_POWER_MANAGEMENT_4, 13, 0),
 SND_SOC_DAPM_AIF_OUT("AIF2ADCR", NULL, 0,
 		     WM8994_POWER_MANAGEMENT_4, 12, 0),
-#if defined (CONFIG_MACH_STAR)
-SND_SOC_DAPM_AIF_OUT("AIF2ADCL", "AIF2 Capture",
-		0, WM8994_POWER_MANAGEMENT_4, 13, 0),
-SND_SOC_DAPM_AIF_OUT("AIF2ADCR", "AIF2 Capture",
-		0, WM8994_POWER_MANAGEMENT_4, 12, 0),
-SND_SOC_DAPM_AIF_IN("AIF2DACL", NULL, 0,
-		WM8994_POWER_MANAGEMENT_5, 13, 0),
-SND_SOC_DAPM_AIF_IN("AIF2DACR", NULL, 0,
-		WM8994_POWER_MANAGEMENT_5, 12, 0),
-#else
 SND_SOC_DAPM_AIF_IN_E("AIF2DACL", NULL, 0,
 		      WM8994_POWER_MANAGEMENT_5, 13, 0, wm8958_aif_ev,
 		      SND_SOC_DAPM_POST_PMU | SND_SOC_DAPM_PRE_PMD),
@@ -1416,7 +1386,6 @@ SND_SOC_DAPM_AIF_IN_E("AIF2DACR", NULL, 0,
 		      WM8994_POWER_MANAGEMENT_5, 12, 0, wm8958_aif_ev,
 		      SND_SOC_DAPM_POST_PMU | SND_SOC_DAPM_PRE_PMD),
 
-#endif
 SND_SOC_DAPM_AIF_IN("AIF1DACDAT", "AIF1 Playback", 0, SND_SOC_NOPM, 0, 0),
 SND_SOC_DAPM_AIF_IN("AIF2DACDAT", "AIF2 Playback", 0, SND_SOC_NOPM, 0, 0),
 SND_SOC_DAPM_AIF_OUT("AIF1ADCDAT", "AIF1 Capture", 0, SND_SOC_NOPM, 0, 0),
@@ -1427,11 +1396,7 @@ SND_SOC_DAPM_MUX("AIF2DAC Mux", SND_SOC_NOPM, 0, 0, &aif2dac_mux),
 SND_SOC_DAPM_MUX("AIF2ADC Mux", SND_SOC_NOPM, 0, 0, &aif2adc_mux),
 
 SND_SOC_DAPM_AIF_IN("AIF3DACDAT", "AIF3 Playback", 0, SND_SOC_NOPM, 0, 0),
-#if defined (CONFIG_MACH_STAR)
-SND_SOC_DAPM_AIF_IN("AIF3ADCDAT", "AIF3 Capture", 0, SND_SOC_NOPM, 0, 0),
-#else
 SND_SOC_DAPM_AIF_OUT("AIF3ADCDAT", "AIF3 Capture", 0, SND_SOC_NOPM, 0, 0),
-#endif
 
 SND_SOC_DAPM_SUPPLY("TOCLK", WM8994_CLOCKING_1, 4, 0, NULL, 0),
 
@@ -1446,16 +1411,6 @@ SND_SOC_DAPM_ADC("DMIC1R", NULL, WM8994_POWER_MANAGEMENT_4, 2, 0),
  */
 SND_SOC_DAPM_ADC("ADCL", NULL, SND_SOC_NOPM, 1, 0),
 SND_SOC_DAPM_ADC("ADCR", NULL, SND_SOC_NOPM, 0, 0),
-
-#if defined (CONFIG_MACH_STAR)
-SND_SOC_DAPM_MUX("Left Headphone Mux", SND_SOC_NOPM, 0, 0, &hpl_mux),
-SND_SOC_DAPM_MUX("Right Headphone Mux", SND_SOC_NOPM, 0, 0, &hpr_mux),
-
-SND_SOC_DAPM_MIXER("SPKL", WM8994_POWER_MANAGEMENT_3, 8, 0,
-		left_speaker_mixer, ARRAY_SIZE(left_speaker_mixer)),
-SND_SOC_DAPM_MIXER("SPKR", WM8994_POWER_MANAGEMENT_3, 9, 0,
-		right_speaker_mixer, ARRAY_SIZE(right_speaker_mixer)),
-#endif
 
 SND_SOC_DAPM_POST("Debug log", post_ev),
 };
@@ -2120,14 +2075,6 @@ static int wm8994_set_bias_level(struct snd_soc_codec *codec,
 		}
 		break;
 	}
-
-#if defined (CONFIG_MACH_STAR)
-	/* Always enable AIF1DAC1R and AIF1DAC1L for prevent no sound issue */
-	snd_soc_update_bits(codec, WM8994_POWER_MANAGEMENT_5,
-			WM8994_AIF1DAC1R_ENA_MASK | WM8994_AIF1DAC1L_ENA_MASK,
-			WM8994_AIF1DAC1R_ENA | WM8994_AIF1DAC1L_ENA);
-#endif
-
 	codec->dapm.bias_level = level;
 	return 0;
 }
@@ -2389,10 +2336,6 @@ static int wm8994_hw_params(struct snd_pcm_substream *substream,
 	 */
 	best = 0;
 	for (i = 0; i < ARRAY_SIZE(bclk_divs); i++) {
-#if defined (CONFIG_MACH_STAR)
-		if (bclk_divs[i] < 0)
-			continue;
-#endif
 		cur_val = (wm8994->aifclk[id] * 10 / bclk_divs[i]) - bclk_rate;
 		if (cur_val < 0) /* BCLK table is sorted */
 			break;
@@ -2408,8 +2351,7 @@ static int wm8994_hw_params(struct snd_pcm_substream *substream,
 		lrclk, bclk_rate / lrclk);
 
 	snd_soc_update_bits(codec, aif1_reg, WM8994_AIF1_WL_MASK, aif1);
-#if defined (CONFIG_MACH_STAR)
-#else
+#ifndef CONFIG_MACH_STAR
 	snd_soc_update_bits(codec, aif2_reg, WM8994_AIF1_MONO, aif2);
 #endif
 	snd_soc_update_bits(codec, bclk_reg, WM8994_AIF1_BCLK_DIV_MASK, bclk);
@@ -2641,11 +2583,7 @@ static struct snd_soc_dai_driver wm8994_dai[] = {
 		},
 		.capture = {
 			.stream_name = "AIF3 Capture",
-#if defined (CONFIG_MACH_STAR)
-			.channels_min = 2,
-#else
 			.channels_min = 1,
-#endif
 			.channels_max = 2,
 			.rates = WM8994_RATES,
 			.formats = WM8994_FORMATS,
@@ -2662,7 +2600,7 @@ static int wm8994_suspend(struct snd_soc_codec *codec, pm_message_t state)
 	int i, ret;
 
 #if defined(CONFIG_MACH_STAR)
-	if(in_call_state())
+	if(tegra_is_voice_call_active())
 	    return 0;
 #endif
 
@@ -2703,10 +2641,9 @@ static int wm8994_resume(struct snd_soc_codec *codec)
 	unsigned int val, mask;
 
 #if defined(CONFIG_MACH_STAR)
-	if(in_call_state())
+	if(tegra_is_voice_call_active())
 	    return 0;
 
-	//LGE_CHANGE_S [chahee.kim@lge.com] 2012-03-23 
 	tegra_gpio_enable(GPIO_WM8994_LDO_EN);
 	ret = gpio_direction_output(GPIO_WM8994_LDO_EN, 1);
 	if (ret < 0) {

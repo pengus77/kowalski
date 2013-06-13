@@ -44,4 +44,10 @@ struct tegra_asoc_platform_data {
 	int gpio_ext_mic_en;
 	unsigned int debounce_time_hp;
 	struct i2s_config i2s_param[NUM_I2S_DEVICES];
+
+#if defined(CONFIG_MACH_STAR)
+	const char *name;
+	int gpio_hook;
+	int gpio_ear_mic;
+#endif
 };

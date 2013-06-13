@@ -54,7 +54,7 @@ struct gpio_keys_drvdata {
 };
 
 #if defined(CONFIG_MACH_STAR_SU660)
-extern bool in_call_state();
+extern bool tegra_is_voice_call_active();
 bool islp1checkon = false;
 #endif
 
@@ -799,7 +799,7 @@ static int gpio_keys_suspend(struct device *dev)
 #if defined(CONFIG_MACH_STAR_SU660)
 			else
 			{
-				if(in_call_state())
+				if(tegra_is_voice_call_active())
 				{
 					enable_irq_wake(bdata->irq);
 					islp1checkon = true;

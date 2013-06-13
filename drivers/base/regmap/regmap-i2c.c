@@ -94,7 +94,9 @@ static int regmap_i2c_read(void *context,
 
 static struct regmap_bus regmap_i2c = {
 	.write = regmap_i2c_write,
+#ifndef CONFIG_MACH_STAR
 	.gather_write = regmap_i2c_gather_write,
+#endif
 	.read = regmap_i2c_read,
 };
 

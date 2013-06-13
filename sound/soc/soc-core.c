@@ -61,7 +61,7 @@ static LIST_HEAD(codec_list);
 int soc_new_pcm(struct snd_soc_pcm_runtime *rtd, int num);
 
 #if defined(CONFIG_MACH_STAR)
-extern bool in_call_state();  
+extern bool tegra_is_voice_call_active();  
 #endif
 /*
  * This is a timeout to do a DAPM powerdown after a stream is closed().
@@ -497,7 +497,7 @@ int snd_soc_suspend(struct device *dev)
 	int i;
 
 #if defined(CONFIG_MACH_STAR)
-	if(in_call_state())
+	if(tegra_is_voice_call_active())
 	    return 0;
 #endif
 	/* If the initialization of this soc device failed, there is no codec
@@ -721,7 +721,7 @@ int snd_soc_resume(struct device *dev)
 	int i, ac97_control = 0;
 
 #if defined(CONFIG_MACH_STAR)
-	if(in_call_state())
+	if(tegra_is_voice_call_active())
 	    return 0;
 #endif
 	/* AC97 devices might have other drivers hanging off them so

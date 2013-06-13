@@ -12,6 +12,7 @@
  * Author: Graeme Gregory
  *         graeme.gregory@wolfsonmicro.com or linux@wolfsonmicro.com
  *
+ * Copyright (c) 2012, NVIDIA CORPORATION. All rights reserved.
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * version 2 as published by the Free Software Foundation.
@@ -27,10 +28,10 @@
  * 02110-1301 USA
  *
  */
-#define DEBUG
 
 #include <asm/mach-types.h>
 
+#include <linux/clk.h>
 #include <linux/module.h>
 #include <linux/platform_device.h>
 #include <linux/slab.h>
@@ -40,11 +41,7 @@
 #include <linux/switch.h>
 #endif
 
-#if defined (CONFIG_MACH_STAR)
-#include "../../../arch/arm/mach-tegra/clock.h"
-#endif
-
-#include <mach/tegra_wm8994_pdata.h>
+#include <mach/tegra_asoc_pdata.h>
 
 #include <sound/core.h>
 #include <sound/jack.h>
@@ -62,10 +59,6 @@
 #include "tegra20_das.h"
 #endif
 
-#if defined (CONFIG_MACH_STAR)
-extern unsigned long clk_get_rate(struct clk *c);
-#endif
-
 #define DRV_NAME "tegra-snd-wm8994"
 
 #define GPIO_SPKR_EN    BIT(0)
@@ -77,29 +70,20 @@ struct headset_switch_data	*headset_sw_data;
 
 extern struct wake_lock headset_wake_lock;
 
-#if defined(CONFIG_MACH_STAR)
-static bool is_call_mode; 
-bool in_call_state(void);
-#endif
+extern int g_is_call_mode;
 
 struct tegra_wm8994 {
 	struct tegra_asoc_utils_data util_data;
-	struct tegra_wm8994_platform_data *pdata;
+	struct tegra_asoc_platform_data *pdata;
 	struct regulator *audio_reg;
 	int gpio_requested;
-
-	bool init_done;
 	int is_call_mode;
-	int is_device_bt;
-#ifndef CONFIG_ARCH_TEGRA_2x_SOC
-	struct codec_config codec_info[NUM_I2S_DEVICES];
-#endif
-	enum snd_soc_bias_level bias_level;
+	int is_call_mode_bt;
 	struct snd_soc_card *pcard;
 };
 
 static int tegra_wm8994_hw_params(struct snd_pcm_substream *substream,
-		struct snd_pcm_hw_params *params)
+					struct snd_pcm_hw_params *params)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_dai *codec_dai = rtd->codec_dai;
@@ -194,7 +178,7 @@ static int tegra_wm8994_hw_params(struct snd_pcm_substream *substream,
 }
 
 static int tegra_voice_call_hw_params(struct snd_pcm_substream *substream,
-		struct snd_pcm_hw_params *params)
+					struct snd_pcm_hw_params *params)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_dai *codec_dai = rtd->codec_dai;
@@ -270,12 +254,12 @@ static int tegra_voice_call_hw_params(struct snd_pcm_substream *substream,
 
 	err = snd_soc_dai_set_sysclk(codec_dai, WM8994_SYSCLK_MCLK1, cdev_srate, SND_SOC_CLOCK_IN);
 
-	machine->is_device_bt = 0;
+	machine->is_call_mode_bt = 0;
 	return 0;
 }
 
 static int tegra_bt_sco_hw_params(struct snd_pcm_substream *substream,
-		struct snd_pcm_hw_params *params)
+					struct snd_pcm_hw_params *params)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
@@ -343,12 +327,12 @@ static int tegra_bt_sco_hw_params(struct snd_pcm_substream *substream,
 	}
 #endif
 
-	machine->is_device_bt = 0;
+	machine->is_call_mode_bt = 0;
 	return 0;
 }
 
 static int tegra_bt_call_hw_params(struct snd_pcm_substream *substream,
-		struct snd_pcm_hw_params *params)
+					struct snd_pcm_hw_params *params)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
@@ -392,7 +376,7 @@ static int tegra_bt_call_hw_params(struct snd_pcm_substream *substream,
 
 	tegra_asoc_utils_lock_clk_rate(&machine->util_data, 1);
 
-	machine->is_device_bt = 1;
+	machine->is_call_mode_bt = 1;
 
 
 	err = snd_soc_dai_set_fmt(cpu_dai,
@@ -423,7 +407,7 @@ static int tegra_bt_call_hw_params(struct snd_pcm_substream *substream,
 }
 
 static int tegra_spdif_hw_params(struct snd_pcm_substream *substream,
-		struct snd_pcm_hw_params *params)
+					struct snd_pcm_hw_params *params)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_card *card = rtd->card;
@@ -474,12 +458,12 @@ static int tegra_hw_free(struct snd_pcm_substream *substream)
 
 	tegra_asoc_utils_lock_clk_rate(&machine->util_data, 0);
 
-	machine->is_device_bt = 0;
+	machine->is_call_mode_bt = 0;
 	return 0;
 }
 
 static int tegra_call_mode_info(struct snd_kcontrol *kcontrol,
-		struct snd_ctl_elem_info *uinfo)
+			struct snd_ctl_elem_info *uinfo)
 {
 	uinfo->type = SNDRV_CTL_ELEM_TYPE_INTEGER;
 	uinfo->count = 1;
@@ -512,7 +496,7 @@ static int tegra_call_mode_put(struct snd_kcontrol *kcontrol,
 	bb_dap_id = TEGRA20_DAS_DAP_ID_3;
 	bb_dap_sel = TEGRA20_DAS_DAP_SEL_DAP3;
 
-	if (machine->is_device_bt) {
+	if (machine->is_call_mode_bt) {
 		codec_dap_id = TEGRA20_DAS_DAP_ID_4;
 		codec_dap_sel = TEGRA20_DAS_DAP_SEL_DAP4;
 	}
@@ -527,9 +511,9 @@ static int tegra_call_mode_put(struct snd_kcontrol *kcontrol,
 		tegra20_das_set_tristate(bb_dap_id, 1);
 #if defined(CONFIG_MACH_STAR)
 		tegra20_das_connect_dap_to_dap(codec_dap_id,
-				bb_dap_sel, 1, 0, 0);
+			bb_dap_sel, 1, 0, 0);
 		tegra20_das_connect_dap_to_dap(bb_dap_id,
-				codec_dap_sel, 0, 0, 0);
+			codec_dap_sel, 0, 0, 0);
 #endif
 		tegra20_das_set_tristate(codec_dap_id, 0);
 		tegra20_das_set_tristate(bb_dap_id, 0);
@@ -541,9 +525,9 @@ static int tegra_call_mode_put(struct snd_kcontrol *kcontrol,
 		tegra20_das_set_tristate(codec_dap_id, 1);
 		tegra20_das_set_tristate(bb_dap_id, 1);
 		tegra20_das_connect_dap_to_dap(bb_dap_id,
-				bb_dap_sel, 0, 0, 0);
+			bb_dap_sel, 0, 0, 0);
 		tegra20_das_connect_dap_to_dap(codec_dap_id,
-				codec_dap_sel, 0, 0, 0);
+			codec_dap_sel, 0, 0, 0);
 		tegra20_das_set_tristate(codec_dap_id, 0);
 		tegra20_das_set_tristate(bb_dap_id, 0);
 		for (i = 0; i < machine->pcard->num_links; i++) // nVidia patch
@@ -552,9 +536,7 @@ static int tegra_call_mode_put(struct snd_kcontrol *kcontrol,
 	}
 
 	machine->is_call_mode = is_call_mode_new;
-#if defined(CONFIG_MACH_STAR)
-	is_call_mode = is_call_mode_new;
-#endif
+	g_is_call_mode = machine->is_call_mode;
 
 	return 1;
 }
@@ -613,20 +595,13 @@ static struct snd_soc_jack_gpio tegra_wm8994_hp_jack_gpio = {
 };
 #endif
 
-#if defined(CONFIG_MACH_STAR)
-bool in_call_state(void)
-{
-	return is_call_mode;
-}
-#endif
-
 static int tegra_wm8994_event_int_spk(struct snd_soc_dapm_widget *w,
-		struct snd_kcontrol *k, int event)
+					struct snd_kcontrol *k, int event)
 {
 	struct snd_soc_dapm_context *dapm = w->dapm;
 	struct snd_soc_card *card = dapm->card;
 	struct tegra_wm8994 *machine = snd_soc_card_get_drvdata(card);
-	struct tegra_wm8994_platform_data *pdata = machine->pdata;
+	struct tegra_asoc_platform_data *pdata = machine->pdata;
 
 	if (!(machine->gpio_requested & GPIO_SPKR_EN))
 		return 0;
@@ -638,18 +613,18 @@ static int tegra_wm8994_event_int_spk(struct snd_soc_dapm_widget *w,
 }
 
 static int tegra_wm8994_event_hp(struct snd_soc_dapm_widget *w,
-		struct snd_kcontrol *k, int event)
+					struct snd_kcontrol *k, int event)
 {
 	struct snd_soc_dapm_context *dapm = w->dapm;
 	struct snd_soc_card *card = dapm->card;
 	struct tegra_wm8994 *machine = snd_soc_card_get_drvdata(card);
-	struct tegra_wm8994_platform_data *pdata = machine->pdata;
+	struct tegra_asoc_platform_data *pdata = machine->pdata;
 
 	if (!(machine->gpio_requested & GPIO_HP_MUTE))
 		return 0;
 
 	gpio_set_value_cansleep(pdata->gpio_hp_mute,
-			!SND_SOC_DAPM_EVENT_ON(event));
+				!SND_SOC_DAPM_EVENT_ON(event));
 
 	return 0;
 }
@@ -678,12 +653,12 @@ static const struct snd_soc_dapm_route tegra_wm8994_audio_map[] = {
 	{"Headset Jack", NULL, "IN2RN"},
 
 	/* main mic is connected to INLN */
-	{ "MICBIAS1", NULL, "Int Mic" },
-	{ "IN1LN", NULL, "MICBIAS1" },
+	{"MICBIAS1", NULL, "Int Mic"},
+	{"IN1LN", NULL, "MICBIAS1" },
 
 	/* sub mic is connected to IN1RN */
-	{"MICBIAS2", NULL, "Line Jack"},
-	{"IN1RN", NULL, "MICBIAS2" },		
+	{"MICBIAS1", NULL, "Mic Jack"},
+	{"IN1RN", NULL, "MICBIAS1"},		
 
 };
 
@@ -715,7 +690,7 @@ static int tegra_wm8994_init(struct snd_soc_pcm_runtime *rtd)
 	struct snd_soc_dapm_context *dapm = &codec->dapm;
 	struct snd_soc_card *card = codec->card;
 	struct tegra_wm8994 *machine = snd_soc_card_get_drvdata(card);
-	struct tegra_wm8994_platform_data *pdata = machine->pdata;
+	struct tegra_asoc_platform_data *pdata = machine->pdata;
 	int ret;
 	struct headset_switch_data *switch_data;
 	struct input_dev *ip_dev; 
@@ -908,7 +883,7 @@ static __devinit int tegra_wm8994_driver_probe(struct platform_device *pdev)
 {
 	struct snd_soc_card *card = &snd_soc_tegra_wm8994;
 	struct tegra_wm8994 *machine;
-	struct tegra_wm8994_platform_data *pdata;
+	struct tegra_asoc_platform_data *pdata;
 	int ret;
 
 	pdata = pdev->dev.platform_data;
@@ -936,12 +911,40 @@ static __devinit int tegra_wm8994_driver_probe(struct platform_device *pdev)
 	ret = snd_soc_register_card(card);
 	if (ret) {
 		dev_err(&pdev->dev, "snd_soc_register_card failed (%d)\n",
-				ret);
+			ret);
 		goto err_fini_utils;
 	}
 
+	if (!card->instantiated) {
+		dev_err(&pdev->dev, "No WM8994 codec\n");
+		goto err_unregister_card;
+	}
+
+#ifndef CONFIG_MACH_STAR
+#ifdef CONFIG_SWITCH
+	/* Add h2w swith class support */
+	ret = switch_dev_register(&wired_switch_dev);
+	if (ret < 0) {
+		dev_err(&pdev->dev, "not able to register switch device\n");
+		goto err_unregister_card;
+	}
+#endif
+#endif
+
+#ifndef CONFIG_ARCH_TEGRA_2x_SOC
+	ret = tegra_asoc_utils_set_parent(&machine->util_data,
+				pdata->i2s_param[HIFI_CODEC].is_i2s_master);
+	if (ret) {
+		dev_err(&pdev->dev, "tegra_asoc_utils_set_parent failed (%d)\n",
+			ret);
+		goto err_unregister_card;
+	}
+#endif
+
 	return 0;
 
+err_unregister_card:
+	snd_soc_unregister_card(card);
 err_fini_utils:
 	tegra_asoc_utils_fini(&machine->util_data);
 err_free_machine:
@@ -953,7 +956,7 @@ static int __devexit tegra_wm8994_driver_remove(struct platform_device *pdev)
 {
 	struct snd_soc_card *card = platform_get_drvdata(pdev);
 	struct tegra_wm8994 *machine = snd_soc_card_get_drvdata(card);
-	struct tegra_wm8994_platform_data *pdata = machine->pdata;
+	struct tegra_asoc_platform_data *pdata = machine->pdata;
 
 	snd_soc_unregister_card(card);
 	switch_dev_unregister(&headset_sw_data->sdev);
@@ -1005,7 +1008,7 @@ static void __exit tegra_wm8994_modexit(void)
 module_exit(tegra_wm8994_modexit);
 
 
+MODULE_AUTHOR("Sumit Bhattacharya <sumitb@nvidia.com>");
 MODULE_DESCRIPTION("Tegra+WM8994 machine ASoC driver");
 MODULE_LICENSE("GPL");
 MODULE_ALIAS("platform:" DRV_NAME);
-
