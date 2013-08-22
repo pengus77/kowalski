@@ -6889,6 +6889,18 @@ static int iwpriv_fw_reload(struct net_device *dev,
 		}
 
 		WL_SOFTAP(("SET firmware_path[]=%s , str_p:%p\n", fwstr, fwstr));
+
+#if defined(CONFIG_MACH_STAR)
+		if (ap_fw_loaded) {
+			dhd_dev_reset(dev, 1);
+			bcm_mdelay(200);
+			dhd_dev_reset(dev, 0);
+#if defined(BCMLXSDMMC)
+			sdioh_start(NULL, 1);
+#endif
+		}
+#endif
+
 		ret = 0;
 	} else {
 		WL_ERROR(("Error: ivalid param len:%d\n", wrqu->data.length));
