@@ -1192,7 +1192,7 @@ static int aat2870_bl_resume(struct i2c_client *client)
 
 	/* Restore backlight */
 	backlight_update_status(bd);
-	// aat2870_bl_enable() will be called during backlight_update_status()
+	aat2870_bl_enable(bd);
 
 	/* Restore LDOs */
 	aat2870_bl_write(bd, AAT2870_BL_LDO_AB,
