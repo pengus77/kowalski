@@ -1071,19 +1071,8 @@ static struct kobj_attribute suspend_mode_attribute =
 
 static struct kobject *suspend_kobj;
 
-#if defined(CONFIG_MACH_STAR)
-extern bool tegra_is_voice_call_active(void);
-#endif
-
 static int tegra_pm_enter_suspend(void)
 {
-#if defined(CONFIG_MACH_STAR)
-	if (tegra_is_voice_call_active())
-		current_suspend_mode = TEGRA_SUSPEND_LP1;
-	else
-		current_suspend_mode = pdata->suspend_mode;
-#endif
-
 	pr_info("Entering suspend state %s\n", lp_state[current_suspend_mode]);
 	if (current_suspend_mode == TEGRA_SUSPEND_LP0)
 		tegra_lp0_cpu_mode(true);

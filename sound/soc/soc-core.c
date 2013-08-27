@@ -498,7 +498,7 @@ int snd_soc_suspend(struct device *dev)
 
 #if defined(CONFIG_MACH_STAR)
 	if(tegra_is_voice_call_active())
-	    return 0;
+	    return -EBUSY;
 #endif
 	/* If the initialization of this soc device failed, there is no codec
 	 * associated with it. Just bail out in this case.
@@ -722,7 +722,7 @@ int snd_soc_resume(struct device *dev)
 
 #if defined(CONFIG_MACH_STAR)
 	if(tegra_is_voice_call_active())
-	    return 0;
+	    return -EBUSY;
 #endif
 	/* AC97 devices might have other drivers hanging off them so
 	 * need to resume immediately.  Other drivers don't have that
