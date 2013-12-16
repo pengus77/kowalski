@@ -137,6 +137,9 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 		struct signal_struct *sig;
 		int oom_adj;
 
+		if (p->flags & PF_KTHREAD)
+			continue;
+
 		task_lock(p);
 		mm = p->mm;
 		sig = p->signal;
