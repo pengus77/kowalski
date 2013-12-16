@@ -1,0 +1,8 @@
+config STAR_MAKE_TUNING
+	bool "Enable Extra Local GCC Build Options"
+	default y if MACH_STAR
+	help
+	  If enabled, this option will include the file
+	  "arch/arm/tuning/makefile_tuning.h" into "arch/arm/Makefile".
+	  You can then insert global and machine-specific GCC
+	  options into that file for custom build tuning
