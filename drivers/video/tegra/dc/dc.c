@@ -1378,8 +1378,10 @@ static bool _tegra_dc_controller_enable(struct tegra_dc *dc)
 	tegra_dc_writel(dc, GENERAL_UPDATE, DC_CMD_STATE_CONTROL);
 	tegra_dc_writel(dc, GENERAL_ACT_REQ, DC_CMD_STATE_CONTROL);
 
+/*
 	if (dc->out->postpoweron)
 		dc->out->postpoweron();
+*/
 
 	return true;
 }
