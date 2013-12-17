@@ -371,20 +371,22 @@ static void hook_det_work(struct work_struct *work)
 	else
 		hook_adc_value = 65;
 
-	hookkey_gpio_status = gpio_get_value(headset_sw_data->hook_gpio);
+	hookkey_gpio_status = max8907c_adc_read_hook_adc();
+	msleep(10);
+	hookkey_gpio_status = max8907c_adc_read_hook_adc();
 
 	if(headset_type != STAR_HEADSET || headset_status != HEADSET_CONNECTED)
 		return;
 
 	if(hook_status == HOOK_RELEASED){
-		if(hookkey_gpio_status == 0){ 
+		if(hookkey_gpio_status <= hook_adc_value){ 
 			hook_status = HOOK_PRESSED; 
 			input_report_key(headset_sw_data->ip_dev, KEY_HOOK, 1);
 			input_sync(headset_sw_data->ip_dev);
 		}        
 	}
 	else{
-		if(hookkey_gpio_status == 1){ 
+		if(hookkey_gpio_status > hook_adc_value){ 
 			hook_status = HOOK_RELEASED; 
 			input_report_key(headset_sw_data->ip_dev, KEY_HOOK, 0);
 			input_sync(headset_sw_data->ip_dev);
@@ -484,22 +486,26 @@ static void gpio_work(struct work_struct *work)
 
 		star_headsetdet_bias(1);
 
-		hookkey_gpio_status = gpio_get_value (headset_sw_data->hook_gpio);
+		hook_value = max8907c_adc_read_hook_adc();
+		msleep(10);
+		hook_value = max8907c_adc_read_hook_adc();
 
-#if defined(CONFIG_MACH_STAR_P990) || defined(CONFIG_MACH_STAR_P999) 
-		if (hookkey_gpio_status == 1)
-#else
-			if (hookkey_gpio_status == 0)
+		if (hook_value > 350)
+		{
+			headset_type = STAR_HEADSET;
+			hook_status = HOOK_RELEASED;
+#if defined(CONFIG_MACH_STAR)
+			gpio_set_value(headset_sw_data->ear_mic, 1);
 #endif
-			{
-				headset_type = STAR_HEADPHONE;
-				hook_status = HOOK_PRESSED;
-			}
-			else
-			{
-				headset_type = STAR_HEADSET;
-				hook_status = HOOK_RELEASED;
-			}
+		}
+		else
+		{
+			headset_type = STAR_HEADPHONE;
+			hook_status = HOOK_PRESSED;
+#if defined(CONFIG_MACH_STAR)
+			gpio_set_value(headset_sw_data->ear_mic, 0);
+#endif
+		}
 	}
 	else
 	{
@@ -507,7 +513,7 @@ static void gpio_work(struct work_struct *work)
 		hook_status = HOOK_RELEASED; 
 		headset_status = HEADSET_NONE;
 
-#if defined(CONFIG_MACH_STAR_SU660) || defined(CONFIG_MACH_STAR_P990) || defined(CONFIG_MACH_STAR_P999)
+#if defined(CONFIG_MACH_STAR)
 		gpio_set_value(headset_sw_data->ear_mic, 0);
 #endif
 

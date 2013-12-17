@@ -173,7 +173,7 @@ int star_cam_Main_power_on(void)
 	if(regulator_vddio_mipi != NULL)
 	{
 		regulator_enable(regulator_vddio_mipi);
-		mdelay(1);
+		mdelay(5);
 	}
 
 	cam	=	1;
@@ -194,7 +194,7 @@ int star_cam_VT_power_on(void)
 	if(regulator_vddio_mipi != NULL)
 	{
 		regulator_enable(regulator_vddio_mipi);
-		mdelay(1);
+		mdelay(5);
 	}
 
 	cam	=	0;

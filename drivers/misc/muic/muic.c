@@ -464,6 +464,7 @@ static ssize_t muic_proc_write(struct file *filp, const char *buf, size_t len, l
 #endif		
 
 #ifdef CONFIG_MACH_STAR
+#if defined (CONFIG_USIF)
 		case 'y':
 			printk(KERN_DEBUG "AP <==> CP uart connection\n");
 			gpio_set_value(USIF_IN_1_GPIO, 0);
@@ -473,6 +474,7 @@ static ssize_t muic_proc_write(struct file *filp, const char *buf, size_t len, l
 			printk(KERN_DEBUG "AP =\\= CP uart disconnection\n");
 			gpio_set_value(USIF_IN_1_GPIO, 1);
 			break;
+#endif
 		case 'n':
 			printk(KERN_DEBUG "TA <==> DEVICE charger connection [%d] [%d]\n",g_half_charging_control,charging_mode);
 			switch (g_half_charging_control) {

@@ -219,7 +219,7 @@ static unsigned char at_charge_comp = 0;
 static unsigned char at_charge_index = 0;
 static unsigned char ELT_test_mode = 0;
 
-#if defined(CONFIG_MACH_STAR_SU660)
+#if defined(CONFIG_MACH_STAR)
 static int ignore_send_uevent = FALSE; // for FOTA
 #endif
 
@@ -425,7 +425,135 @@ static void battery_update(struct battery_info *batt_info)
 	mutex_unlock(&battery_mutex);
 }
 
+#if defined(CONFIG_MACH_STAR_P990)
+static void charger_contorl_unlimited_temp(void)
+{
+	struct battery_info *batt_info = refer_batt_info;
+	TYPE_CHARGING_MODE muic_mode;
+	muic_mode = get_muic_charger_type();
+	
+	DBG("charger_contorl_unlimited_temp present=%d", batt_info->present);
+	if (batt_info->present == 1)
+	{
+		batt_info->prev_health = batt_info->health;
 
+		DBG("charger_contorl_unlimited_temp present=%d",batt_info->health);
+		switch (batt_info->health)
+		{
+			case POWER_SUPPLY_HEALTH_GOOD:
+				if (batt_info->temperature >= 750) {
+					// Deactivate Charger : Battery Critical Overheat
+					DBG("POWER_SUPPLY_HEALTH_GOOD 750 over");
+					batt_info->health = POWER_SUPPLY_HEALTH_CRITICAL_OVERHEAT;
+				}
+				else if ((batt_info->temperature >= 550) && (batt_info->temperature < 750)) {
+					// Change Charger Setting : Battery Overheat, USB_500 mode
+					DBG("POWER_SUPPLY_HEALTH_GOOD 550~750 ");
+					batt_info->health = POWER_SUPPLY_HEALTH_OVERHEAT;
+					if (charger_ic_get_status() != CHARGER_DISABLE) {
+						if (charger_ic_get_state() != CHARGER_STATE_FULLBATTERY)
+						{
+							DBG("POWER_SUPPLY_HEALTH_GOOD CHARGER_STATE_CHARGE 550~750 ");
+							batt_info->charge_setting_chcomp = charger_ic_get_status();
+							charger_ic_set_state(CHARGER_STATE_CHARGE);
+							charger_ic_set_mode(CHARGER_USB500);
+						}
+					}
+				}
+				else if (batt_info->temperature <= (-100)) {
+					// Deactivate Charger : Battery Cold
+					DBG("POWER_SUPPLY_HEALTH_GOOD temperature -100 ");
+					batt_info->health = POWER_SUPPLY_HEALTH_COLD;
+				} else {
+					DBG("POWER_SUPPLY_HEALTH_GOOD temperature -100 else ");
+					batt_info->health = POWER_SUPPLY_HEALTH_GOOD;
+				}
+				break;
+			
+			case POWER_SUPPLY_HEALTH_OVERHEAT:
+				if (batt_info->temperature >= 750) {
+					// Deactivate Charger : Battery Critical Overheat
+					DBG("POWER_SUPPLY_HEALTH_OVERHEAT 750 over ");
+					batt_info->health = POWER_SUPPLY_HEALTH_CRITICAL_OVERHEAT;
+				}
+				else if (batt_info->temperature >= 520 && batt_info->temperature <= 750)
+				{
+					DBG("POWER_SUPPLY_HEALTH_OVERHEAT 520~750  ");
+					batt_info->health = POWER_SUPPLY_HEALTH_OVERHEAT;
+					if (charger_ic_get_status() != CHARGER_DISABLE) {
+						if (charger_ic_get_state() != CHARGER_STATE_FULLBATTERY)
+						{
+							charger_ic_set_state(CHARGER_STATE_CHARGE);
+							charger_ic_set_mode(CHARGER_USB500);
+							batt_info->high_temp_overvoltage = 0;
+							DBG("POWER_SUPPLY_HEALTH_OVERHEAT CHARGER_STATE_CHARGE 520~750");
+						}
+					}
+				}
+				else if (batt_info->temperature <= 520) {
+					if (charger_ic_get_status() != CHARGER_DISABLE) {
+						// Reactivate Charger : Battery Normal again
+						DBG("POWER_SUPPLY_HEALTH_OVERHEAT temperature 520 ");
+						batt_info->health = POWER_SUPPLY_HEALTH_GOOD;
+						if (charger_ic_get_state() != CHARGER_STATE_FULLBATTERY)
+						{
+							charger_ic_set_state(CHARGER_STATE_CHARGE);
+							charger_ic_set_mode(batt_info->charge_setting_chcomp);
+						}
+					}
+					else
+						batt_info->health = POWER_SUPPLY_HEALTH_GOOD;
+				} else {
+					DBG(" HEALTH_OVERHEAT Battery Critical Overheat");
+					batt_info->health = POWER_SUPPLY_HEALTH_OVERHEAT;
+				}
+				break;
+			
+			case POWER_SUPPLY_HEALTH_CRITICAL_OVERHEAT:
+				if (batt_info->temperature <= 720) {
+					if (charger_ic_get_status() != CHARGER_DISABLE) {
+					       // Reactivate Charger : Battery USB mode again
+					       DBG("POWER_SUPPLY_HEALTH_CRITICAL_OVERHEAT 720 over");
+					       batt_info->health = POWER_SUPPLY_HEALTH_OVERHEAT;
+					       if (charger_ic_get_state() != CHARGER_STATE_FULLBATTERY)
+					       {
+						       charger_ic_set_state(CHARGER_STATE_CHARGE);
+						       charger_ic_set_mode(CHARGER_USB500);
+					       }
+					}
+					else
+						batt_info->health = POWER_SUPPLY_HEALTH_OVERHEAT;
+				}
+				else {
+					DBG("POWER_SUPPLY_HEALTH_CRITICAL_OVERHEAT Battery Critical Overheat");
+					batt_info->health = POWER_SUPPLY_HEALTH_CRITICAL_OVERHEAT;
+				}
+				break;
+			
+			case POWER_SUPPLY_HEALTH_COLD:
+				if (charger_ic_get_status() != CHARGER_DISABLE) {
+					// Reactivate Charger : Battery Normal again
+					DBG("POWER_SUPPLY_HEALTH_COLD Battery");
+					batt_info->health = POWER_SUPPLY_HEALTH_GOOD;
+					if (charger_ic_get_state() != CHARGER_STATE_FULLBATTERY)
+					{
+						DBG("POWER_SUPPLY_HEALTH_COLD Battery  CHARGER_STATE_CHARGE");
+						charger_ic_set_state(CHARGER_STATE_CHARGE);
+						charger_ic_set_mode(batt_info->charge_setting_chcomp);
+					}
+				}
+				else
+					batt_info->health = POWER_SUPPLY_HEALTH_GOOD;
+				break;
+			
+			default:
+				DBG("Battery Unknown Health State");
+				batt_info->health = POWER_SUPPLY_HEALTH_UNKNOWN;
+				break;
+		} // switch end
+	} // if end
+} // function end
+#else
 /* Charger Control with Temp. */
 static void charger_contorl_unlimited_temp(void)
 {
@@ -502,6 +630,7 @@ static void charger_contorl_unlimited_temp(void)
 		} // switch end
 	}// if end
 }
+#endif
 
 static void charger_contol_with_battery_temp(void)
 {
@@ -944,7 +1073,7 @@ static void battery_update_changes(struct battery_info *batt_info, int force_upd
 	/* Changes Polling Period */
 	battery_data_polling_period_change();
 
-#if defined(CONFIG_MACH_STAR_SU660)
+#if defined(CONFIG_MACH_STAR)
 	if (ignore_send_uevent == FALSE) {
 		power_supply_changed(&batt_info->bat);
 	}
@@ -975,7 +1104,7 @@ void charger_ic_set_mode_for_muic(unsigned int mode)
 				case CHARGER_USB100:
 				case CHARGER_ISET:
 				case CHARGER_FACTORY:
-#if defined(CONFIG_MACH_STAR_SU660)
+#if defined(CONFIG_MACH_STAR)
 					if (ignore_send_uevent == FALSE) {
 						power_supply_changed(&refer_batt_info->bat);
 					}
@@ -1019,7 +1148,7 @@ void charger_ic_disable_for_muic(void)
 #if defined(TRICKLE_RECHECK)
 	refer_batt_info->trickle_charge_check = 0;
 #endif
-#if defined(CONFIG_MACH_STAR_SU660)
+#if defined(CONFIG_MACH_STAR)
 	if (ignore_send_uevent == FALSE) {
 		power_supply_changed(&refer_batt_info->bat);
 	}
@@ -1031,7 +1160,7 @@ EXPORT_SYMBOL(charger_ic_disable_for_muic);
 
 void notification_of_changes_to_battery(void)
 {
-	DBG("[BATTERY SHUTDOWN] notification_of_changes_to_battery(%d)\n",update_on);
+	DBG("[BATTERY SHUTDOWN] notification_of_changes_to_battery\n");
 	if(refer_batt_info == NULL)
 		return;
 
@@ -1070,7 +1199,7 @@ static void battery_id_check()
 			{
 				DBG("No Battery or Dummy Battery State");
 				batt_info->present = 0;
-#if defined(CONFIG_MACH_STAR_SU660)
+#if defined(CONFIG_MACH_STAR)
 				if (ignore_send_uevent == FALSE) {
 					power_supply_changed(&batt_info->bat);
 				}
@@ -1356,7 +1485,7 @@ static ssize_t star_at_chcomp_show_property(
 	if (( batt_info->voltage >= 4100 ) || ( at_charge_comp == 1 ))
 	{
 		batt_info->capacity = 95;
-#if defined(CONFIG_MACH_STAR_SU660)
+#if defined(CONFIG_MACH_STAR)
 		if (ignore_send_uevent == FALSE) {
 			power_supply_changed(&batt_info->bat);
 		}
@@ -1364,7 +1493,7 @@ static ssize_t star_at_chcomp_show_property(
 		power_supply_changed(&batt_info->bat);
 #endif
 		batt_info->capacity = 100;
-#if defined(CONFIG_MACH_STAR_SU660)
+#if defined(CONFIG_MACH_STAR)
 		if (ignore_send_uevent == FALSE) {
 			power_supply_changed(&batt_info->bat);
 		}
@@ -1376,7 +1505,7 @@ static ssize_t star_at_chcomp_show_property(
 	else
 	{
 		batt_info->capacity = 95;
-#if defined(CONFIG_MACH_STAR_SU660)
+#if defined(CONFIG_MACH_STAR)
 		if (ignore_send_uevent == FALSE) {
 			power_supply_changed(&batt_info->bat);
 		}
@@ -1401,7 +1530,7 @@ static ssize_t star_at_chcomp_store_property(
 	{
 		batt_info->capacity = 95;
 		at_charge_comp = 0;
-#if defined(CONFIG_MACH_STAR_SU660)
+#if defined(CONFIG_MACH_STAR)
 		if (ignore_send_uevent == FALSE) {
 			power_supply_changed(&batt_info->bat);
 		}
@@ -1413,7 +1542,7 @@ static ssize_t star_at_chcomp_store_property(
 	{
 		batt_info->capacity = 100;
 		at_charge_comp = 1;
-#if defined(CONFIG_MACH_STAR_SU660)
+#if defined(CONFIG_MACH_STAR)
 		if (ignore_send_uevent == FALSE) {
 			power_supply_changed(&batt_info->bat);
 		}
@@ -1685,7 +1814,14 @@ static void valid_cbc_check_and_process(unsigned int value)  // not used  yet
 					batt_info->capacity_gauge = 1;
 					batt_info->gauge_on = 1;
 				}
-				else	batt_info->capacity_gauge = display_cbc;
+				else
+				{
+					batt_info->capacity_gauge = display_cbc;
+#if defined(CONFIG_MACH_STAR_P990)
+					batt_info->capacity = display_cbc;
+					batt_info->gauge_on = 1;
+#endif
+				}
 			}
 			else if( value == 100 )
 			{
@@ -1783,7 +1919,7 @@ static void valid_cbc_check_and_process(unsigned int value)  // not used  yet
 			}
 
 			DBG(" #############batt_info->capacity[%d]##################\n",batt_info->capacity);
-#if defined(CONFIG_MACH_STAR_SU660)
+#if defined(CONFIG_MACH_STAR)
 			if (ignore_send_uevent == FALSE) {
 				power_supply_changed(&batt_info->bat);
 			}
@@ -1904,7 +2040,7 @@ static ssize_t star_battery_voltage_now_store_property(
 	return count;
 }
 
-#if defined(CONFIG_MACH_STAR_SU660)
+#if defined(CONFIG_MACH_STAR)
 ssize_t ignore_uevent_store(struct device *dev,
 		struct device_attribute *attr,
 		const char *buf,
@@ -1930,7 +2066,7 @@ DEVICE_ATTR(true_gauge, S_IRUGO | S_IWUGO, star_cbc_show_property, star_cbc_stor
 DEVICE_ATTR(bat_gauge, S_IRUGO | S_IWUGO, star_battery_show_property, star_battery_store_property);	// hardware/ril/lge-ril/lge-ril.c
 DEVICE_ATTR(temp_control, S_IRUGO | S_IWUGO, star_temp_control_show_property, star_temp_control_store_property);/* HW requirement: temp control  */	
 DEVICE_ATTR(voltage_now, S_IRUGO | S_IWUGO, star_battery_voltage_now_show_property, star_battery_voltage_now_store_property);
-#if defined(CONFIG_MACH_STAR_SU660)
+#if defined(CONFIG_MACH_STAR)
 DEVICE_ATTR(ignore_uevent, 0644, NULL, ignore_uevent_store);
 #endif
 
@@ -2152,7 +2288,7 @@ static int __init battery_probe(struct platform_device *pdev)
 	}
 #endif
 
-#if defined(CONFIG_MACH_STAR_SU660)
+#if defined(CONFIG_MACH_STAR)
 	ret = device_create_file(&pdev->dev, &dev_attr_ignore_uevent);
 	if (ret)
 	{
@@ -2186,7 +2322,7 @@ dbatt_file_create_fail:
 	device_remove_file(&pdev->dev, &dev_attr_at_chomp);
 at_chomp_file_create_fail:
 	device_remove_file(&pdev->dev, &dev_attr_at_charge);
-#if defined(CONFIG_MACH_STAR_SU660)
+#if defined(CONFIG_MACH_STAR)
 ignore_uevent_file_create_fail:
 	device_remove_file(&pdev->dev, &dev_attr_ignore_uevent);
 #endif
@@ -2232,7 +2368,7 @@ static int battery_remove(struct platform_device *pdev)
 	device_remove_file(&pdev->dev, &dev_attr_temp_control);
 	device_remove_file(&pdev->dev, &dev_attr_voltage_now);
 	device_remove_file(&pdev->dev, &dev_attr_readtempadc);
-#if defined(CONFIG_MACH_STAR_SU660)
+#if defined(CONFIG_MACH_STAR)
 	device_remove_file(&pdev->dev, &dev_attr_ignore_uevent);
 #endif
 	/* Remove Driver Data */

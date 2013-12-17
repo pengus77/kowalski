@@ -88,8 +88,12 @@ static int star_wakeup_key(void)
 
 	pr_debug("star_wakeup_key : status %d\n", status);
 
+#if defined(CONFIG_MACH_STAR_P990)
+	return (status & TEGRA_WAKE_GPIO_PV2) ? KEY_POWER : KEY_RESERVED;
+#else
 	return (status & TEGRA_WAKE_GPIO_PV2) ? KEY_POWER : 
 		(status & TEGRA_WAKE_GPIO_PV6) ? KEY_HOME : KEY_RESERVED;
+#endif
 }
 
 int __init star_kbc_init(void)

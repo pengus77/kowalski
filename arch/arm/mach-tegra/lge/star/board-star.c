@@ -168,6 +168,19 @@ static struct platform_device bd_address_device = {
 };
 #endif
 
+static struct i2c_board_info __initdata star_i2c6_board_info[] = {
+	{
+		I2C_BOARD_INFO("max14526", 0x44), // MUIC(R:0x88)
+		.platform_data = NULL,
+	},
+};
+
+static int __init star_muic_init(void)
+{
+	i2c_register_board_info(6, star_i2c6_board_info, ARRAY_SIZE(star_i2c6_board_info));
+	return 0;
+}
+
 static struct tegra_i2c_platform_data star_i2c1_platform_data = {
 	.adapter_nr	= 0,
 	.bus_count	= 1,
@@ -226,10 +239,10 @@ struct platform_device star_gpioi2c_device = {
 };
 
 static struct i2c_gpio_platform_data star_gpioi2c_platform_data = {
-	.udelay = 2,
-	.scl_is_output_only = 0,
 	.sda_pin = TEGRA_GPIO_PK4, 
-	.scl_pin = TEGRA_GPIO_PI7, 
+	.scl_pin = TEGRA_GPIO_PI7,
+	.udelay  = 5, /* (500 / udelay) kHz */
+	.timeout = 100, /* jiffies */
 };
 
 static void star_i2c_init(void)
@@ -247,6 +260,8 @@ static void star_i2c_init(void)
 
 static void star_gpioi2c_init(void)
 {
+	tegra_gpio_enable(TEGRA_GPIO_PK4);
+	tegra_gpio_enable(TEGRA_GPIO_PI7);
 	star_gpioi2c_device.dev.platform_data = &star_gpioi2c_platform_data;
 	platform_device_register(&star_gpioi2c_device);
 }
@@ -316,6 +331,7 @@ static void __init tegra_star_init(void)
 	tegra_setup_bluesleep();
 #endif
 	tegra_release_bootloader_fb();
+	star_muic_init();
 }
 
 int __init tegra_star_protected_aperture_init(void)

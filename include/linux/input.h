@@ -444,7 +444,8 @@ struct input_keymap_entry {
 #define KEY_MICMUTE		248	/* Mute / unmute the microphone */
 
 #if defined(CONFIG_MACH_STAR)
-#define KEY_HOOK        	248 
+#define KEY_HOOK        	248
+#define KEY_IPC_RECOVERY 	197
 #endif
 
 /* Code 255 is reserved for special needs of AT keyboard driver */

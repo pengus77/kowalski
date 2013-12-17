@@ -53,7 +53,7 @@ struct gpio_keys_drvdata {
 	struct gpio_button_data data[0];
 };
 
-#if defined(CONFIG_MACH_STAR_SU660)
+#if defined(CONFIG_MACH_STAR)
 extern bool tegra_is_voice_call_active();
 bool islp1checkon = false;
 #endif
@@ -796,7 +796,7 @@ static int gpio_keys_suspend(struct device *dev)
 			struct gpio_button_data *bdata = &ddata->data[i];
 			if (bdata->button->wakeup)
 				enable_irq_wake(bdata->irq);
-#if defined(CONFIG_MACH_STAR_SU660)
+#if defined(CONFIG_MACH_STAR)
 			else
 			{
 				if(tegra_is_voice_call_active())
@@ -835,7 +835,7 @@ static int gpio_keys_resume(struct device *dev)
 				input_sync(ddata->input);
 			}
 		}
-#if defined(CONFIG_MACH_STAR_SU660)
+#if defined(CONFIG_MACH_STAR)
 		else
 		{
 			if(islp1checkon == true)
@@ -846,7 +846,7 @@ static int gpio_keys_resume(struct device *dev)
 		if (gpio_is_valid(bdata->button->gpio))
 			gpio_keys_gpio_report_event(bdata);
 	}
-#if defined(CONFIG_MACH_STAR_SU660)
+#if defined(CONFIG_MACH_STAR)
 	if(islp1checkon == true) {
 		islp1checkon = false;
 	}

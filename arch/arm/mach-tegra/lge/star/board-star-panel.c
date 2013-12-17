@@ -610,7 +610,6 @@ static int star_panel_postpoweron(void)
 		printk(KERN_DEBUG "\n star LGD star_panel_postpoweron...... \n");
 		gpio_set_value(STAR_HITACHI_LCD_CS, 0);
 		gpio_set_value(STAR_HITACHI_LCD_CS, 1);
-		mdelay(1);
 		
 		regulator_set_voltage(reg_lcd_1v8, 1800000, 1800000);
 
@@ -622,8 +621,8 @@ static int star_panel_postpoweron(void)
 		if(!regulator_is_enabled(reg_lcd_vdd))
 			regulator_enable(reg_lcd_vdd);
 
+		mdelay(1);
 		gpio_set_value(STAR_HITACHI_LCD_RESET, 1);
-
 		mdelay(10);
 
 		gpio_direction_output(STAR_HITACHI_LCD_CS, 1);
@@ -1058,6 +1057,9 @@ static void star_panel_late_resume(struct early_suspend *h)
 #endif
 	for (i = 0; i < num_registered_fb; i++)
 		fb_blank(registered_fb[i], FB_BLANK_UNBLANK);
+
+	if (MARKED_ID)
+		mdelay(50);
 }
 #endif
 

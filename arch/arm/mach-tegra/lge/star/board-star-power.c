@@ -306,7 +306,7 @@ static struct max8907c_platform_data max8907c_pdata = {
 };
 
 static struct regulator_consumer_supply max8952_MODE1_supply[] = {
-#if defined( CONFIG_MACH_STAR) && defined(CONFIG_MACH_STAR_SU660)
+#if defined( CONFIG_MACH_STAR)
 	REGULATOR_SUPPLY("vdd_cpu", NULL),
 #endif
 };  

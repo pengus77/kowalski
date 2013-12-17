@@ -126,32 +126,61 @@ static struct aat2870_ctl_tbl_t aat2870bl_normal_tbl[] = {
 	{ 0xFF, 0xFE }	 /* end of command */
 };
 
-/* Set to ALC mode HW-high gain mode*/
-static struct aat2870_ctl_tbl_t aat2870bl_alc_tbl[] = {
-	/* ALC table 0~15 20101218 tunning ver. */
-	{0x12,0x19},  /* ALS current setting 5.6mA */
-	{0x13,0x1C},  /* ALS current setting 6.53mA */
-	{0x14,0x1E},  /* ALS current setting 7.20mA */
-	{0x15,0x20},  /* ALS current setting 7.65mA */
-	{0x16,0x22},  /* ALS current setting 7.88mA */
-	{0x17,0x23},  /* ALS current setting 8.33mA */
-	{0x18,0x25},  /* ALS current setting 9.0mA */
-	{0x19,0x27},  /* ALS current setting 9.45mA */
-	{0x1A,0x29},  /* ALS current setting 9.68mA */
-	{0x1B,0x2A},  /* ALS current setting 10.13mA */
-	{0x1C,0x2C},  /* ALS current setting 10.58mA */
-	{0x1D,0x30},  /* ALS current setting 11.48mA */
-	{0x1E,0x33},  /* ALS current setting 12.15mA */
-	{0x1F,0x36},  /* ALS current setting 12.83mA */
-	{0x20,0x39},  /* ALS current setting 13.50mA */
-	{0x21,0x3C},  /* ALS current setting 14.18mA */
 
-	{ 0x0E, 0x73 },  /* SNSR_LIN_LOG=linear, ALSOUT_LIN_LOG=log, RSET=16k~64k,
-			  * GAIN=low, GM=man gain, ALS_EN=on */
-	{ 0x0F, 0x01 },  /* SBIAS=3.0V, SBIAS=on */
-	{ 0x10, 0x90 },  /* pwm inactive, auto polling, 1sec, +0% */
-	{ 0x00, 0xFF },  /* Channel Enable : ALL */
-	{ 0xFF, 0xFE }   /* end or command */
+
+/* Set to ALC mode HW-high gain mode */
+static struct aat2870_ctl_tbl_t aat2870bl_alc_tbl[][21] = {
+	/* ALC table 0~15 20101218 tunning ver. */
+	{
+		// Hitachi
+		{0x12,0x19},  /* ALS current setting 5.6mA */
+		{0x13,0x1C},  /* ALS current setting 6.53mA */
+		{0x14,0x1E},  /* ALS current setting 7.20mA */
+		{0x15,0x20},  /* ALS current setting 7.65mA */
+		{0x16,0x22},  /* ALS current setting 7.88mA */
+		{0x17,0x23},  /* ALS current setting 8.33mA */
+		{0x18,0x25},  /* ALS current setting 9.0mA */
+		{0x19,0x27},  /* ALS current setting 9.45mA */
+		{0x1A,0x29},  /* ALS current setting 9.68mA */
+		{0x1B,0x2A},  /* ALS current setting 10.13mA */
+		{0x1C,0x2C},  /* ALS current setting 10.58mA */
+		{0x1D,0x30},  /* ALS current setting 11.48mA */
+		{0x1E,0x33},  /* ALS current setting 12.15mA */
+		{0x1F,0x36},  /* ALS current setting 12.83mA */
+		{0x20,0x39},  /* ALS current setting 13.50mA */
+		{0x21,0x3C},  /* ALS current setting 14.18mA */
+		{ 0x0E, 0x73 },  /* SNSR_LIN_LOG=linear, ALSOUT_LIN_LOG=log, RSET=16k~64k,
+				  * GAIN=low, GM=man gain, ALS_EN=on */
+		{ 0x0F, 0x01 },  /* SBIAS=3.0V, SBIAS=on */
+		{ 0x10, 0x90 },  /* pwm inactive, auto polling, 1sec, +0% */
+		{ 0x00, 0xFF },  /* Channel Enable : ALL */
+		{ 0xFF, 0xFE }   /* end or command */
+	},
+	{
+		// LGD
+		{0x12,0x14},  /* 22 ALS current setting 5.0mA */
+		{0x13,0x14},  /* 25 ALS current setting 5.63mA */
+		{0x14,0x15},  /* 27 ALS current setting 7.43mA */
+		{0x15,0x17},  /* 29 ALS current setting 7.88mA */
+		{0x16,0x19},  /* ALS current setting 8.10mA */
+		{0x17,0x1a},  /* ALS current setting 8.33mA */
+		{0x18,0x1b},  /* ALS current setting 8.78mA */
+		{0x19,0x1d},  /* ALS current setting 9.0mA */
+		{0x1A,0x1e},  /* ALS current setting 9.23mA */
+		{0x1B,0x1f},  /* ALS current setting 9.45mA */
+		{0x1C,0x21},  /* ALS current setting 10.58mA */
+		{0x1D,0x23},  /* ALS current setting 10.80mA */
+		{0x1E,0x26},  /* ALS current setting 11.25mA */
+		{0x1F,0x29},  /* ALS current setting 11.93mA */
+		{0x20,0x2c},  /* ALS current setting 12.15mA */
+		{0x21,0x2f},  /* ALS current setting 12.38mA */
+		{0x0E,0x73},  /* SNSR_LIN_LOG=linear, ALSOUT_LIN_LOG=log, RSET=16k~64k,
+			       * GAIN=low, GM=man gain, ALS_EN=on */
+		{0x0F,0x01},  /* SBIAS=3.0V, SBIAS=on */
+		{0x10,0x90},  /* pwm inactive, auto polling, 1sec, +0% */
+		{0x00,0xFF},  /* Channel Enable : ALL */
+		{0xFF,0xFE}   /* end or command */
+	}
 };
 
 
@@ -178,25 +207,48 @@ static struct aat2870_lux_tbl_t  aat2870_lux_tbl[] = {
 };
 
 // initial ALC current Setting
-static struct aat2870_bl_command init_alc_currents[] =
+static struct aat2870_bl_command init_alc_currents[][17] =
 {
-	{0x12,0x19},	/* ALS current setting  5.0mA */
-	{0x13,0x1C},	/* ALS current setting  6.0mA */
-	{0x14,0x1E},	/* ALS current setting  7.0mA */
-	{0x15,0x20},	/* ALS current setting  8.0mA */
-	{0x16,0x22},	/* ALS current setting  9.0mA */
-	{0x17,0x23},	/* ALS current setting 10.0mA */
-	{0x18,0x25},	/* ALS current setting 11.0mA */
-	{0x19,0x27},	/* ALS current setting 12.0mA */
-	{0x1A,0x29},	/* ALS current setting 13.0mA */
-	{0x1B,0x2A},	/* ALS current setting 14.0mA */
-	{0x1C,0x2C},	/* ALS current setting 15.0mA */
-	{0x1D,0x30},	/* ALS current setting 16.0mA */
-	{0x1E,0x33},	/* ALS current setting 17.0mA */
-	{0x1F,0x36},	/* ALS current setting 18.0mA */
-	{0x20,0x39},	/* ALS current setting 19.0mA */
-	{0x21,0x3C},	/* ALS current setting 20.0mA */
-	{0xFF,0x00},	/* End of array */
+	{
+		// Hitachi
+		{0x12,0x19},	/* ALS current setting  5.0mA */
+		{0x13,0x1C},	/* ALS current setting  6.0mA */
+		{0x14,0x1E},	/* ALS current setting  7.0mA */
+		{0x15,0x20},	/* ALS current setting  8.0mA */
+		{0x16,0x22},	/* ALS current setting  9.0mA */
+		{0x17,0x23},	/* ALS current setting 10.0mA */
+		{0x18,0x25},	/* ALS current setting 11.0mA */
+		{0x19,0x27},	/* ALS current setting 12.0mA */
+		{0x1A,0x29},	/* ALS current setting 13.0mA */
+		{0x1B,0x2A},	/* ALS current setting 14.0mA */
+		{0x1C,0x2C},	/* ALS current setting 15.0mA */
+		{0x1D,0x30},	/* ALS current setting 16.0mA */
+		{0x1E,0x33},	/* ALS current setting 17.0mA */
+		{0x1F,0x36},	/* ALS current setting 18.0mA */
+		{0x20,0x39},	/* ALS current setting 19.0mA */
+		{0x21,0x3C},	/* ALS current setting 20.0mA */
+		{0xFF,0x00},	/* End of array */
+	},
+	{
+		// LGD
+		{0x12,0x14},  /* 22 ALS current setting 5.0mA */  
+		{0x13,0x14},  /* 25 ALS current setting 5.63mA */
+		{0x14,0x15},  /* 27 ALS current setting 7.43mA */
+		{0x15,0x17},  /* 29 ALS current setting 7.88mA */
+		{0x16,0x19},  /* ALS current setting 8.10mA */
+		{0x17,0x1a},  /* ALS current setting 8.33mA */
+		{0x18,0x1b},  /* ALS current setting 8.78mA */
+		{0x19,0x1d},  /* ALS current setting 9.0mA */
+		{0x1A,0x1e},  /* ALS current setting 9.23mA */
+		{0x1B,0x1f},  /* ALS current setting 9.45mA */
+		{0x1C,0x21},  /* ALS current setting 10.58mA */
+		{0x1D,0x23},  /* ALS current setting 10.80mA */
+		{0x1E,0x26},  /* ALS current setting 11.25mA */
+		{0x1F,0x29},  /* ALS current setting 11.93mA */
+		{0x20,0x2c},  /* ALS current setting 12.15mA */
+		{0x21,0x2f},  /* ALS current setting 12.38mA */
+		{0xFF,0x00},    /* End of array */
+	}
 };
 #endif
 
@@ -208,6 +260,15 @@ static void aat2870_bl_switch_mode(int op_mode);
 static unsigned int aat2870_bl_conv_to_lux(int lev);
 static int aat2870_bl_brightness_linearized(int intensity, int *level);
 static int calc_brightness(struct backlight_device *bd, int brightness);
+
+//return 0: Hitachi
+//return 1: LGD
+static int get_panel_info(void)
+{
+	tegra_gpio_enable(77);
+	gpio_direction_input(77);
+	return gpio_get_value(/*STAR_LCD_MARKED_ID*/77);
+}
 
 /* Static sysfs Functions Here */
 static int calc_brightness(struct backlight_device *bd, int brightness)
@@ -295,10 +356,11 @@ static void aat2870_bl_enable(struct backlight_device *bd)
 			// which does not perform magnitude setting
 
 		} else {	/* Auto Brightness Mode */
-			for (i=0 ; init_alc_currents[i].addr != 0xFF ; i++) {
+			int marked_id = get_panel_info();
+			for (i=0 ; init_alc_currents[marked_id][i].addr != 0xFF ; i++) {
 				aat2870_bl_write(bd,
-						init_alc_currents[i].addr,
-						init_alc_currents[i].data);
+						init_alc_currents[marked_id][i].addr,
+						init_alc_currents[marked_id][i].data);
 				udelay(10);
 			}
 
@@ -422,7 +484,7 @@ static int aat2870_bl_get_brightness(struct backlight_device *bd)
 	return bd->props.brightness;
 }
 
-#if defined (CONFIG_MACH_STAR_P990) || (CONFIG_MACH_STAR_SU660)
+#if defined (CONFIG_MACH_STAR_P990) || defined (CONFIG_MACH_STAR_SU660)
 static int aat2870_bl_update_modestatus(struct backlight_device *bd)
 {
 	struct aat2870_bl_driver_data *drvdata = dev_get_drvdata(&bd->dev);
@@ -515,7 +577,7 @@ static int aat2870_bl_check_fb(struct backlight_device *bd, struct fb_info *fi)
 static const struct backlight_ops aat2870_bl_ops = {
 	.get_brightness = aat2870_bl_get_brightness,
 	.update_status  = aat2870_bl_update_status,
-#if defined (CONFIG_MACH_STAR_P990) || (CONFIG_MACH_STAR_SU660)
+#if defined (CONFIG_MACH_STAR_P990) || defined (CONFIG_MACH_STAR_SU660)
 	.update_modestatus  = aat2870_bl_update_modestatus,
 #endif
 	.check_fb = aat2870_bl_check_fb,
@@ -880,7 +942,7 @@ static ssize_t aat2870_bl_store_onoff(struct device *dev, struct device_attribut
 	return count;
 }
 
-#if defined(CONFIG_MACH_STAR_SU660)
+#if defined(CONFIG_MACH_STAR)
 static ssize_t aat2870_bl_store_foff(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
 {
 	int onoff;
@@ -937,7 +999,7 @@ static DEVICE_ATTR(alc,       0664, aat2870_bl_show_alc, aat2870_bl_store_alc);
 static DEVICE_ATTR(onoff,     0666, aat2870_bl_show_onoff, aat2870_bl_store_onoff);
 static DEVICE_ATTR(hwdim,     0666, aat2870_bl_show_hwdim, aat2870_bl_store_hwdim);
 static DEVICE_ATTR(lsensor_onoff, 0666, aat2870_bl_show_lsensor_onoff, aat2870_bl_store_lsensor_onoff);
-#if defined(CONFIG_MACH_STAR_SU660)
+#if defined(CONFIG_MACH_STAR)
 static DEVICE_ATTR(panel_info,0666, aat2870_bl_show_panel_info, aat2870_bl_store_panel_info);
 static DEVICE_ATTR(foff,      0666, aat2870_bl_show_onoff, aat2870_bl_store_foff);
 #endif
@@ -950,7 +1012,7 @@ static struct attribute *aat2870_bl_attributes[] = {
 	&dev_attr_onoff.attr,
 	&dev_attr_hwdim.attr,
 	&dev_attr_lsensor_onoff.attr,
-#if defined(CONFIG_MACH_STAR_SU660)
+#if defined(CONFIG_MACH_STAR)
 	&dev_attr_panel_info.attr,
 	&dev_attr_foff.attr,
 #endif
@@ -986,6 +1048,8 @@ static int aat2870_bl_probe(struct i2c_client *client,
 	struct backlight_device *bd;
 	struct backlight_properties props;
 	int ret = 0;
+
+	int marked_id = get_panel_info();
 
 	dev_info(&client->dev, "probe\n");
 
@@ -1046,7 +1110,7 @@ static int aat2870_bl_probe(struct i2c_client *client,
 
 	/* Driver Data Information */
 	drvdata->cmds.normal = aat2870bl_normal_tbl;
-	drvdata->cmds.alc = aat2870bl_alc_tbl;
+	drvdata->cmds.alc = aat2870bl_alc_tbl[marked_id];
 	drvdata->cmds.sleep = aat2870bl_sleep_tbl;
 	drvdata->op_mode = AAT2870_OP_MODE_NORMAL;
 	drvdata->dim_status = DIMMING_NONE;
