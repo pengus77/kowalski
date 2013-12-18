@@ -1339,6 +1339,10 @@ static int tegra_dc_init(struct tegra_dc *dc)
 	return 0;
 }
 
+#ifdef CONFIG_MACH_STAR
+extern int bAndroidBootMode;
+#endif
+
 static bool _tegra_dc_controller_enable(struct tegra_dc *dc)
 {
 	int failed_init = 0;
@@ -1377,11 +1381,6 @@ static bool _tegra_dc_controller_enable(struct tegra_dc *dc)
 
 	tegra_dc_writel(dc, GENERAL_UPDATE, DC_CMD_STATE_CONTROL);
 	tegra_dc_writel(dc, GENERAL_ACT_REQ, DC_CMD_STATE_CONTROL);
-
-/*
-	if (dc->out->postpoweron)
-		dc->out->postpoweron();
-*/
 
 	return true;
 }
@@ -2000,6 +1999,10 @@ static int tegra_dc_resume(struct nvhost_device *ndev)
 
 	if (dc->out_ops && dc->out_ops->resume)
 		dc->out_ops->resume(dc);
+
+	if (dc->out && dc->out->postpoweron)
+		dc->out->postpoweron();
+
 	mutex_unlock(&dc->lock);
 
 	return 0;
