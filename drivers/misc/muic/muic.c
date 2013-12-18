@@ -1106,11 +1106,6 @@ static s32 __devexit muic_remove(struct i2c_client *client)
 
 static s32 muic_suspend(struct i2c_client *client, pm_message_t state)
 {
-#ifdef CONFIG_MACH_STAR_SU660
-	unsigned long flags;
-
-	printk(KERN_DEBUG "[MUIC] MUIC : suspend is called \n");
-#endif
 	client->dev.power.power_state = state;
 	if(muic_device == MAX14526)
 		muic_i2c_write_byte(CONTROL_2, 0);
@@ -1121,10 +1116,9 @@ static s32 muic_suspend(struct i2c_client *client, pm_message_t state)
 static s32 muic_resume(struct i2c_client *client)
 {
 	client->dev.power.power_state = PMSG_ON;
-#ifdef CONFIG_MACH_STAR_SU660
 	if(muic_device == MAX14526)
 		muic_i2c_write_byte(CONTROL_2, INT_EN);
-#endif
+
 	return 0;
 }
 
