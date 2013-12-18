@@ -32,6 +32,7 @@ const struct tegra_init_gpio_info tegra_sleep_gpio_info_array[] = {
     { 'v'-'a',      7, GPIO_ENABLE, GPIO_OUTPUT,    GPIO_SLEEP_LOW,       LVP0},  // LCD_RESET_N
     { 'k'-'a',      5, GPIO_ENABLE, GPIO_OUTPUT,    GPIO_SLEEP_LOW,       SPDO},  // HDMI_REG_EN
     { 'x'-'a',      4, GPIO_ENABLE, GPIO_OUTPUT,    GPIO_SLEEP_LOW,       SPID},  // BT_WAKEUP
+    { 'o'-'a',      0, GPIO_ENABLE, GPIO_OUTPUT,    GPIO_SLEEP_LOW,       UAB},   // IPC_MRDY
     { 'i'-'a',      7, GPIO_ENABLE, GPIO_OUTPUT,    GPIO_SLEEP_HIGH,      ATC},   // MUIC_SCL
     { 'k'-'a',      4, GPIO_ENABLE, GPIO_OUTPUT,    GPIO_SLEEP_HIGH,      ATC},   // MUIC_SDA
     { 'k'-'a',      3, GPIO_ENABLE, GPIO_OUTPUT,    GPIO_SLEEP_HIGH,      ATC},   // WM_LDO_EN
