@@ -59,11 +59,8 @@ static void aat2870_bl_late_resume(struct early_suspend *h);
 
 struct aat2870_bl_driver_data *aat2870_bl_drvdata;
 
-#ifdef CONFIG_MACH_LGE
-
 // flag indicating ALS enable
 static bool als_enabled = false;
-
 
 // AAT2870 register address and data
 struct aat2870_bl_command {
@@ -86,6 +83,35 @@ enum {
 #define AAT2870_OP_MODE_ALC     (1 << 1)
 #define AAT2870_MAX_LIGHT_INTENSITY 0x16
 
+static struct aat2870_ctl_tbl_t aat2870bl_pengus_tbl[] = {
+	{ 0x12, 0x09 },  /* 0 lux */
+	{ 0x13, 0x0A },  /* 50 lux*/
+	{ 0x14, 0x0C },  /* 100 lux */
+	{ 0x15, 0x0D },  /* 130 lux */
+	{ 0x16, 0x0E },  /* 160 lux */
+	{ 0x17, 0x10 },  /* 200 lux */
+	{ 0x18, 0x12 },  /* 250 lux */
+	{ 0x19, 0x13 },  /* 300 lux */
+	{ 0x1A, 0x15 },  /* 400 lux */
+	{ 0x1B, 0x17 },  /* 500 lux */
+	{ 0x1C, 0x19 },  /* 650 lux */
+	{ 0x1D, 0x1C },  /* 800 lux */
+	{ 0x1E, 0x20 },  /* 1000 lux */
+	{ 0x1F, 0x27 },  /* 1400 lux */
+	{ 0x20, 0x2B },  /* 2000 lux */
+	{ 0x21, 0x3C },  /* 3000 lux */
+	//{ 0x0E, 0x31 },  // SNSR_LIN_LOG=linear, ALSOUT_LIN_LOG=linear, RSET=16k~64k,
+					  // GAIN=low, GM=auto, ALS_EN=on
+	{ 0x0E, 0xF1 }, // SNSR_LIN_LOG=log, ALSOUT_LIN_LOG=log, RSET=16k~64k,
+					// GAIN=low, GM=auto, ALS_EN=on
+	//{ 0x0E, 0x73 }, // SNSR_LIN_LOG=linear, ALSOUT_LIN_LOG=log, RSET=16k~64k,
+					// GAIN=low, GM=man gain, ALS_EN=on
+	{ 0x0F, 0x01 }, // SBIAS=3.0V, SBIAS=on
+	{ 0x10, 0xB0 }, // pwm inactive, auto polling, 2sec, +0%
+	{ 0x00, 0xFF }, // Channel Enable : ALL
+	{ 0xFF, 0xFE }  // end or command
+};
+
 static struct aat2870_ctl_tbl_t aat2870bl_fade_in_tbl[] = {
 	{ 0x0c, 0x02 }, //Fade, Disabled
 	{ 0x01, 0x00 }, 
@@ -95,13 +121,11 @@ static struct aat2870_ctl_tbl_t aat2870bl_fade_in_tbl[] = {
 	{ 0xFF, 0xFE },  /* end of command */		
 };
 
-
 static struct aat2870_ctl_tbl_t aat2870bl_fade_out_tbl[] = {
 	{ 0x0B, 0x01 }, 
 	{ 0x0C, AAT2870_FM_REG_FADEOUT_EN_VAL },  /* FMT=0.6s, DISABLE_FADE_MAIN=0, FADE_MAIN=fade out */
 	{ 0xFF, 0xFE },  /* end of command */		
 };
-
 
 static struct aat2870_ctl_tbl_t aat2870bl_stop_fade_tbl[] = {
 	{ 0x0C, 0x03 },  /* FMT=0.6s, DISABLE_FADE_MAIN=0, FADE_MAIN=fade out */
@@ -126,64 +150,6 @@ static struct aat2870_ctl_tbl_t aat2870bl_normal_tbl[] = {
 	{ 0xFF, 0xFE }	 /* end of command */
 };
 
-
-
-/* Set to ALC mode HW-high gain mode */
-static struct aat2870_ctl_tbl_t aat2870bl_alc_tbl[][21] = {
-	/* ALC table 0~15 20101218 tunning ver. */
-	{
-		// Hitachi
-		{0x12,0x19},  /* ALS current setting 5.6mA */
-		{0x13,0x1C},  /* ALS current setting 6.53mA */
-		{0x14,0x1E},  /* ALS current setting 7.20mA */
-		{0x15,0x20},  /* ALS current setting 7.65mA */
-		{0x16,0x22},  /* ALS current setting 7.88mA */
-		{0x17,0x23},  /* ALS current setting 8.33mA */
-		{0x18,0x25},  /* ALS current setting 9.0mA */
-		{0x19,0x27},  /* ALS current setting 9.45mA */
-		{0x1A,0x29},  /* ALS current setting 9.68mA */
-		{0x1B,0x2A},  /* ALS current setting 10.13mA */
-		{0x1C,0x2C},  /* ALS current setting 10.58mA */
-		{0x1D,0x30},  /* ALS current setting 11.48mA */
-		{0x1E,0x33},  /* ALS current setting 12.15mA */
-		{0x1F,0x36},  /* ALS current setting 12.83mA */
-		{0x20,0x39},  /* ALS current setting 13.50mA */
-		{0x21,0x3C},  /* ALS current setting 14.18mA */
-		{ 0x0E, 0x73 },  /* SNSR_LIN_LOG=linear, ALSOUT_LIN_LOG=log, RSET=16k~64k,
-				  * GAIN=low, GM=man gain, ALS_EN=on */
-		{ 0x0F, 0x01 },  /* SBIAS=3.0V, SBIAS=on */
-		{ 0x10, 0x90 },  /* pwm inactive, auto polling, 1sec, +0% */
-		{ 0x00, 0xFF },  /* Channel Enable : ALL */
-		{ 0xFF, 0xFE }   /* end or command */
-	},
-	{
-		// LGD
-		{0x12,0x14},  /* 22 ALS current setting 5.0mA */
-		{0x13,0x14},  /* 25 ALS current setting 5.63mA */
-		{0x14,0x15},  /* 27 ALS current setting 7.43mA */
-		{0x15,0x17},  /* 29 ALS current setting 7.88mA */
-		{0x16,0x19},  /* ALS current setting 8.10mA */
-		{0x17,0x1a},  /* ALS current setting 8.33mA */
-		{0x18,0x1b},  /* ALS current setting 8.78mA */
-		{0x19,0x1d},  /* ALS current setting 9.0mA */
-		{0x1A,0x1e},  /* ALS current setting 9.23mA */
-		{0x1B,0x1f},  /* ALS current setting 9.45mA */
-		{0x1C,0x21},  /* ALS current setting 10.58mA */
-		{0x1D,0x23},  /* ALS current setting 10.80mA */
-		{0x1E,0x26},  /* ALS current setting 11.25mA */
-		{0x1F,0x29},  /* ALS current setting 11.93mA */
-		{0x20,0x2c},  /* ALS current setting 12.15mA */
-		{0x21,0x2f},  /* ALS current setting 12.38mA */
-		{0x0E,0x73},  /* SNSR_LIN_LOG=linear, ALSOUT_LIN_LOG=log, RSET=16k~64k,
-			       * GAIN=low, GM=man gain, ALS_EN=on */
-		{0x0F,0x01},  /* SBIAS=3.0V, SBIAS=on */
-		{0x10,0x90},  /* pwm inactive, auto polling, 1sec, +0% */
-		{0x00,0xFF},  /* Channel Enable : ALL */
-		{0xFF,0xFE}   /* end or command */
-	}
-};
-
-
 static struct aat2870_lux_tbl_t  aat2870_lux_tbl[] = {
 	{0x00,	0},
 	{0x01,	50},
@@ -206,52 +172,6 @@ static struct aat2870_lux_tbl_t  aat2870_lux_tbl[] = {
 	{0x20,	0x00}
 };
 
-// initial ALC current Setting
-static struct aat2870_bl_command init_alc_currents[][17] =
-{
-	{
-		// Hitachi
-		{0x12,0x19},	/* ALS current setting  5.0mA */
-		{0x13,0x1C},	/* ALS current setting  6.0mA */
-		{0x14,0x1E},	/* ALS current setting  7.0mA */
-		{0x15,0x20},	/* ALS current setting  8.0mA */
-		{0x16,0x22},	/* ALS current setting  9.0mA */
-		{0x17,0x23},	/* ALS current setting 10.0mA */
-		{0x18,0x25},	/* ALS current setting 11.0mA */
-		{0x19,0x27},	/* ALS current setting 12.0mA */
-		{0x1A,0x29},	/* ALS current setting 13.0mA */
-		{0x1B,0x2A},	/* ALS current setting 14.0mA */
-		{0x1C,0x2C},	/* ALS current setting 15.0mA */
-		{0x1D,0x30},	/* ALS current setting 16.0mA */
-		{0x1E,0x33},	/* ALS current setting 17.0mA */
-		{0x1F,0x36},	/* ALS current setting 18.0mA */
-		{0x20,0x39},	/* ALS current setting 19.0mA */
-		{0x21,0x3C},	/* ALS current setting 20.0mA */
-		{0xFF,0x00},	/* End of array */
-	},
-	{
-		// LGD
-		{0x12,0x14},  /* 22 ALS current setting 5.0mA */  
-		{0x13,0x14},  /* 25 ALS current setting 5.63mA */
-		{0x14,0x15},  /* 27 ALS current setting 7.43mA */
-		{0x15,0x17},  /* 29 ALS current setting 7.88mA */
-		{0x16,0x19},  /* ALS current setting 8.10mA */
-		{0x17,0x1a},  /* ALS current setting 8.33mA */
-		{0x18,0x1b},  /* ALS current setting 8.78mA */
-		{0x19,0x1d},  /* ALS current setting 9.0mA */
-		{0x1A,0x1e},  /* ALS current setting 9.23mA */
-		{0x1B,0x1f},  /* ALS current setting 9.45mA */
-		{0x1C,0x21},  /* ALS current setting 10.58mA */
-		{0x1D,0x23},  /* ALS current setting 10.80mA */
-		{0x1E,0x26},  /* ALS current setting 11.25mA */
-		{0x1F,0x29},  /* ALS current setting 11.93mA */
-		{0x20,0x2c},  /* ALS current setting 12.15mA */
-		{0x21,0x2f},  /* ALS current setting 12.38mA */
-		{0xFF,0x00},    /* End of array */
-	}
-};
-#endif
-
 /* Static Utility Functions Here */
 static int aat2870_bl_read(struct backlight_device *bd, int addr);
 static int aat2870_bl_write(struct backlight_device *bd, int addr, int data);
@@ -261,14 +181,6 @@ static unsigned int aat2870_bl_conv_to_lux(int lev);
 static int aat2870_bl_brightness_linearized(int intensity, int *level);
 static int calc_brightness(struct backlight_device *bd, int brightness);
 
-//return 0: Hitachi
-//return 1: LGD
-static int get_panel_info(void)
-{
-	tegra_gpio_enable(77);
-	gpio_direction_input(77);
-	return gpio_get_value(/*STAR_LCD_MARKED_ID*/77);
-}
 
 /* Static sysfs Functions Here */
 static int calc_brightness(struct backlight_device *bd, int brightness)
@@ -314,7 +226,7 @@ static int aat2870_bl_read(struct backlight_device *bd, int addr)
 	struct aat2870_bl_driver_data *drvdata = dev_get_drvdata(&bd->dev);
 	struct i2c_client *client = drvdata->client;
 	int val = 0;
-
+	
 	val = i2c_smbus_read_byte_data(client, (char)addr);
 	drvdata->reg_cache[addr] = val;
 
@@ -324,23 +236,16 @@ static int aat2870_bl_read(struct backlight_device *bd, int addr)
 static void aat2870_bl_enable(struct backlight_device *bd)
 {
 	struct aat2870_bl_driver_data *drvdata = dev_get_drvdata(&bd->dev);
-	int i;
 
 	dbg("enable\n");
 
-	if(is_suspended == true)
-	{
-		return 0;
-	}
+	if (is_suspended)
+		return;
 
 	if (drvdata->en_pin >= 0) {
-#ifdef CONFIG_MACH_LGE
 		gpio_set_value(drvdata->en_pin, 0);
 		mdelay(1);
-#endif
 		gpio_set_value(drvdata->en_pin, 1);
-
-#ifdef CONFIG_MACH_LGE
 		udelay(100);
 
 		if (als_enabled == false) {
@@ -356,13 +261,11 @@ static void aat2870_bl_enable(struct backlight_device *bd)
 			// which does not perform magnitude setting
 
 		} else {	/* Auto Brightness Mode */
-			int marked_id = get_panel_info();
-			for (i=0 ; init_alc_currents[marked_id][i].addr != 0xFF ; i++) {
-				aat2870_bl_write(bd,
-						init_alc_currents[marked_id][i].addr,
-						init_alc_currents[marked_id][i].data);
-				udelay(10);
-			}
+			if (! drvdata->cmds.alc)
+				drvdata->cmds.alc = aat2870bl_pengus_tbl;
+
+			aat2870_bl_send_cmd(drvdata, drvdata->cmds.alc);
+			udelay(10);
 
 			/* ALS Function, Log Scale, Rset 4K/16K, High gain input setting */
 			aat2870_bl_write(bd, AAT2870_BL_ALSF_, 0x71);
@@ -383,7 +286,6 @@ static void aat2870_bl_enable(struct backlight_device *bd)
 		}
 
 		mdelay(1);
-#endif
 	}
 }
 
@@ -396,10 +298,8 @@ static void aat2870_bl_disable(struct backlight_device *bd)
 	if (drvdata->en_pin >= 0) {
 		gpio_set_value(drvdata->en_pin, 0);
 
-#ifdef CONFIG_MACH_LGE
 		// to trigger enable during resume
 		drvdata->brightness = 0;
-#endif
 	}
 }
 
@@ -484,21 +384,19 @@ static int aat2870_bl_get_brightness(struct backlight_device *bd)
 	return bd->props.brightness;
 }
 
-#if defined (CONFIG_MACH_STAR_P990) || defined (CONFIG_MACH_STAR_SU660)
 static int aat2870_bl_update_modestatus(struct backlight_device *bd)
 {
-	struct aat2870_bl_driver_data *drvdata = dev_get_drvdata(&bd->dev);
-	int brightness_mode = bd->props.brightness_mode;
-	int next_mode;
-	static struct aat2870_bl_driver_data *drv;
-	drv = aat2870_bl_drvdata;
+	int brightness_mode, next_mode;
+	struct aat2870_bl_driver_data *drv;
+
+	brightness_mode = bd->props.brightness_mode;
+	drv = dev_get_drvdata(&bd->dev);
 
 	if(brightness_mode == 1)
 	{
 		next_mode = AAT2870_OP_MODE_ALC;
-		if (drv->lsensor_enable) {
+		if (drv->lsensor_enable)
 			schedule_delayed_work(&drv->delayed_work_bl, drv->lsensor_poll_time);
-		}
 	}
 	else
 	{
@@ -506,8 +404,9 @@ static int aat2870_bl_update_modestatus(struct backlight_device *bd)
 	}
 	aat2870_bl_switch_mode(next_mode);
 	drv->op_mode = next_mode;
+
+	return 0;
 }
-#endif
 
 static int aat2870_bl_update_status(struct backlight_device *bd)
 {
@@ -515,10 +414,8 @@ static int aat2870_bl_update_status(struct backlight_device *bd)
 	int brightness = bd->props.brightness;
 	int ret = 0;
 
-	if(is_suspended == true)
-	{
+	if (is_suspended)
 		return 0;
-	}
 
 	if ((brightness < 0) || (brightness > bd->props.max_brightness)) {
 		dev_err(&bd->dev,
@@ -527,7 +424,6 @@ static int aat2870_bl_update_status(struct backlight_device *bd)
 		ret = -EINVAL;
 		goto out;
 	}
-
 
 	dbg("props: brightness=%d, power=%d, state=%d\n",
 			bd->props.brightness, bd->props.power, bd->props.state);
@@ -553,16 +449,6 @@ static int aat2870_bl_update_status(struct backlight_device *bd)
 			ret = -EIO;
 			goto out;
 		}
-		// channel enable is done during aat2870_bl_enable()
-#ifndef CONFIG_MACH_LGE
-		if (drvdata->brightness == 0) {
-			if (aat2870_bl_write(bd, AAT2870_BL_EN,
-						drvdata->avail_ch) < 0) {
-				ret = -EIO;
-				goto out;
-			}
-		}
-#endif
 	}
 	drvdata->brightness = brightness;
 out:
@@ -577,9 +463,7 @@ static int aat2870_bl_check_fb(struct backlight_device *bd, struct fb_info *fi)
 static const struct backlight_ops aat2870_bl_ops = {
 	.get_brightness = aat2870_bl_get_brightness,
 	.update_status  = aat2870_bl_update_status,
-#if defined (CONFIG_MACH_STAR_P990) || defined (CONFIG_MACH_STAR_SU660)
 	.update_modestatus  = aat2870_bl_update_modestatus,
-#endif
 	.check_fb = aat2870_bl_check_fb,
 };
 
@@ -605,10 +489,8 @@ static int aat2870_bl_send_cmd(struct aat2870_bl_driver_data *drv, struct aat287
 {
 	unsigned long delay = 0;
 
-	if(is_suspended == true)
-	{
+	if (is_suspended)
 		return 0;
-	}
 
 	if (tbl == NULL) {
 		dbg("input ptr is null\n");
@@ -618,9 +500,8 @@ static int aat2870_bl_send_cmd(struct aat2870_bl_driver_data *drv, struct aat287
 	mutex_lock(&drv->cmd_lock);
 	for( ;;) {
 		if (tbl->reg == 0xFF) {
-			if (tbl->val != 0xFE) {
+			if (tbl->val != 0xFE)
 				delay = (unsigned long)tbl->val;
-			}
 			else
 				break;
 		}
@@ -651,9 +532,9 @@ static void aat2870_bl_switch_mode(int op_mode)
 	} else if (op_mode == AAT2870_OP_MODE_ALC) {
 		aat2870_bl_send_cmd(drv, drv->cmds.alc);
 		dbg("[BL] Mode: alc\n");
-		if (drv->lsensor_enable == TRUE) 
+		if (drv->lsensor_enable == TRUE)
 			schedule_delayed_work(&drv->delayed_work_bl, drv->lsensor_poll_time);
-	} 
+	}
 
 	if (drv->status == AAT2870_POWER_STATE_OFF) {
 		dbg("[BL] Weird: how to use without display\n");
@@ -697,8 +578,7 @@ static int aat2870_bl_brightness_linearized(int intensity, int *level)
 		ret = -EINVAL; 
 	}
 	return ret;
-}  
-
+}
 
 static ssize_t aat2870_bl_store_intensity(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
 {    
@@ -706,16 +586,11 @@ static ssize_t aat2870_bl_store_intensity(struct device *dev, struct device_attr
 	static struct aat2870_bl_driver_data *drv;
 
 	if (is_suspended)
-		return -EINVAL;
+		return 0;
 
 	drv = aat2870_bl_drvdata;
 	if (!count)
 		return -EINVAL;
-
-	if(is_suspended == true)
-	{
-		return 0;
-	}
 
 	sscanf(buf, "%d", &intensity);	//level range: 0 to 22 from aat2870 ds
 
@@ -738,7 +613,7 @@ static ssize_t aat2870_bl_store_intensity(struct device *dev, struct device_attr
 		}
 	}
 
-	if (drv->power_onoff_ref == TRUE) {
+	if (drv->power_onoff_ref) {
 		aat2870_bl_send_cmd(drv, aat2870bl_fade_in_tbl);
 		if (drv->op_mode != AAT2870_OP_MODE_ALC) {
 			aat2870_bl_write(drv->bd, AAT2870_BL_BLM, level);
@@ -761,13 +636,11 @@ intensity_input_err:
 	return count;
 }
 
-
 static ssize_t aat2870_bl_show_alc_level(struct device *dev, struct device_attribute *attr, char *buf)
 {
 	struct aat2870_bl_driver_data *drv;
 	int alc_level = 0;
 	int ret;
-
 
 	drv = aat2870_bl_drvdata;
 	if (!drv)
@@ -942,7 +815,6 @@ static ssize_t aat2870_bl_store_onoff(struct device *dev, struct device_attribut
 	return count;
 }
 
-#if defined(CONFIG_MACH_STAR)
 static ssize_t aat2870_bl_store_foff(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
 {
 	int onoff;
@@ -962,35 +834,74 @@ static ssize_t aat2870_bl_store_foff(struct device *dev, struct device_attribute
 	dbg("[BL] aat2870_bl_reset\n");
 	return count;
 }
-static ssize_t aat2870_bl_show_panel_info(struct device *dev, struct device_attribute *attr, char *buf)
-{
-#ifndef	TEGRA_GPIO_PJ5
-#define TEGRA_GPIO_PJ5	77
-#endif
-	unsigned int panel_info = 0;
-	int ret = -1;
-	tegra_gpio_enable(TEGRA_GPIO_PJ5);
-	gpio_direction_input(TEGRA_GPIO_PJ5);
-	panel_info = gpio_get_value(TEGRA_GPIO_PJ5);
-	if( panel_info == 0 || panel_info == 1) {
-		dbg("[BD] Panel Info Value [%d].", panel_info);
-		sprintf(buf, "%d\n", panel_info);
-		ret = (ssize_t)(strlen(buf) + 1);
-	} else {
-		dbg("[BD] Invalid Panel Info Value.");
-		sprintf(buf, "%d\n", panel_info);
-		ret = -1;
+
+static ssize_t aat2870_bl_show_alc_table(struct device *dev, struct device_attribute *attr, char *buf) {
+	static struct aat2870_bl_driver_data *drv;
+	struct aat2870_ctl_tbl_t *tbl;
+	char *table;
+	int i;
+
+	table = buf;
+
+	drv = aat2870_bl_drvdata;
+	if (!drv)
+		return -EINVAL;
+
+	tbl = drv->cmds.alc;
+	if (!tbl)
+		return -EINVAL;
+
+	for (i=0; i<16; i++) {
+		table += sprintf(table, "%d = %d\n", aat2870_lux_tbl[i].lux, tbl[i].val);
 	}
-	return ret;
-#ifdef	TEGRA_GPIO_PJ5
-#undef	TEGRA_GPIO_PJ5
-#endif
+
+	table += sprintf(table, "\n");
+	return table - buf;
 }
-static ssize_t aat2870_bl_store_panel_info(struct device *dev, struct device_attribute *attr, char *buf, size_t count)
-{
-	return 0;
+
+static ssize_t aat2870_bl_store_alc_table(struct device *dev, struct device_attribute *attr, char *buf, size_t count) {
+	static struct aat2870_bl_driver_data *drv;
+	struct aat2870_ctl_tbl_t *tbl;
+	int i;
+	unsigned long val;
+	char *k, *p;
+
+	p = buf;
+
+	drv = aat2870_bl_drvdata;
+	if (!drv)
+		return -EINVAL;
+
+	tbl = drv->cmds.alc;
+	if (!tbl)
+		return -EINVAL;
+
+	i = 0;
+	while (i<16) {
+		k = strsep(&p, " ");
+		if (k == NULL)
+			break;
+		if (strlen(k) > 0) {
+			val = simple_strtoul(k, NULL, 10);
+
+			if (val < 3)
+				val = 3;
+			if (val > 70)
+				val = 70;
+
+			tbl[i].val = val;
+			i++;
+		}
+	}
+
+	drv->cmds.alc = tbl;
+	if (drv->op_mode == AAT2870_OP_MODE_ALC) {
+		printk("%s: sent new table to the backlight driver !\n", __FUNCTION__);
+		aat2870_bl_send_cmd(drv, tbl);
+	}
+
+	return count;
 }
-#endif
 
 /* Sysfs Block */
 static DEVICE_ATTR(intensity, 0666, aat2870_bl_show_intensity, aat2870_bl_store_intensity);
@@ -999,10 +910,8 @@ static DEVICE_ATTR(alc,       0664, aat2870_bl_show_alc, aat2870_bl_store_alc);
 static DEVICE_ATTR(onoff,     0666, aat2870_bl_show_onoff, aat2870_bl_store_onoff);
 static DEVICE_ATTR(hwdim,     0666, aat2870_bl_show_hwdim, aat2870_bl_store_hwdim);
 static DEVICE_ATTR(lsensor_onoff, 0666, aat2870_bl_show_lsensor_onoff, aat2870_bl_store_lsensor_onoff);
-#if defined(CONFIG_MACH_STAR)
-static DEVICE_ATTR(panel_info,0666, aat2870_bl_show_panel_info, aat2870_bl_store_panel_info);
 static DEVICE_ATTR(foff,      0666, aat2870_bl_show_onoff, aat2870_bl_store_foff);
-#endif
+static DEVICE_ATTR(alc_table, 0664, aat2870_bl_show_alc_table, aat2870_bl_store_alc_table);
 
 /* Sysfs Struct */
 static struct attribute *aat2870_bl_attributes[] = {
@@ -1012,10 +921,8 @@ static struct attribute *aat2870_bl_attributes[] = {
 	&dev_attr_onoff.attr,
 	&dev_attr_hwdim.attr,
 	&dev_attr_lsensor_onoff.attr,
-#if defined(CONFIG_MACH_STAR)
-	&dev_attr_panel_info.attr,
 	&dev_attr_foff.attr,
-#endif
+	&dev_attr_alc_table.attr,
 	NULL,
 };
 
@@ -1040,16 +947,13 @@ static void aat2870_bl_work_func(struct work_struct *wq)
 	}
 }
 
-static int aat2870_bl_probe(struct i2c_client *client,
-		const struct i2c_device_id *id)
+static int aat2870_bl_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
 	struct aat2870_bl_platform_data *pdata = client->dev.platform_data;
 	struct aat2870_bl_driver_data *drvdata;
 	struct backlight_device *bd;
 	struct backlight_properties props;
 	int ret = 0;
-
-	int marked_id = get_panel_info();
 
 	dev_info(&client->dev, "probe\n");
 
@@ -1110,7 +1014,7 @@ static int aat2870_bl_probe(struct i2c_client *client,
 
 	/* Driver Data Information */
 	drvdata->cmds.normal = aat2870bl_normal_tbl;
-	drvdata->cmds.alc = aat2870bl_alc_tbl[marked_id];
+	drvdata->cmds.alc = aat2870bl_pengus_tbl;
 	drvdata->cmds.sleep = aat2870bl_sleep_tbl;
 	drvdata->op_mode = AAT2870_OP_MODE_NORMAL;
 	drvdata->dim_status = DIMMING_NONE;
@@ -1119,7 +1023,7 @@ static int aat2870_bl_probe(struct i2c_client *client,
 	drvdata->hw_dimming_enable = TRUE;
 	drvdata->lsensor_enable = FALSE;
 	drvdata->lsensor_poll_time = AAT2870_DEFAULT_LSENSOR_POLL_TIME;
-	drvdata->power_onoff_ref = FALSE;	
+	drvdata->power_onoff_ref = FALSE;
 	/* End Driver Data Information */
 
 	if (drvdata->init) {
@@ -1146,12 +1050,8 @@ static int aat2870_bl_probe(struct i2c_client *client,
 
 	drvdata->brightness = 0;
 	bd->props.power = FB_BLANK_UNBLANK;
-#ifdef CONFIG_MACH_LGE
 	bd->props.brightness = (bd->props.max_brightness) / 2;
 	dbg("brightness=%d\n", bd->props.brightness);
-#else
-	bd->props.brightness = bd->props.max_brightness;
-#endif
 
 	ret = aat2870_bl_update_status(bd);
 	if (ret < 0) {
@@ -1240,7 +1140,6 @@ static int aat2870_bl_suspend(struct i2c_client *client, pm_message_t state)
 
 	dev_info(&client->dev, "suspend\n");
 	is_suspended = true;
-
 
 	aat2870_bl_disable(bd);
 	return 0;

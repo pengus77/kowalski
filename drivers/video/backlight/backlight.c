@@ -135,6 +135,48 @@ static ssize_t backlight_store_power(struct device *dev,
 	return rc;
 }
 
+#if defined (CONFIG_MACH_STAR_P990) || (CONFIG_MACH_STAR_SU660)
+static ssize_t backlight_show_brightnessmode(struct device *dev,
+                struct device_attribute *attr, char *buf)
+{
+        struct backlight_device *bd = to_backlight_device(dev);
+
+        return sprintf(buf, "%d\n", bd->props.brightness_mode);
+}
+
+static ssize_t backlight_store_brightnessmode(struct device *dev,
+                struct device_attribute *attr, const char *buf, size_t count)
+{
+        int rc; 
+        struct backlight_device *bd = to_backlight_device(dev);
+        unsigned long brightnessmode;
+
+        rc = strict_strtoul(buf, 0, &brightnessmode);
+        if (rc)
+                return rc; 
+
+        rc = -ENXIO;
+
+        mutex_lock(&bd->ops_lock);
+        if (bd->ops) {
+                if (brightnessmode == bd->props.brightness_mode)
+                        rc = -EINVAL;
+                else {
+                        pr_debug("backlight: set brightness to %lu\n",
+                                 brightnessmode);
+                        bd->props.brightness_mode = brightnessmode;
+                        backlight_update_modestatus(bd);
+                        rc = count;
+                }
+        }
+        mutex_unlock(&bd->ops_lock);
+
+        backlight_generate_event(bd, BACKLIGHT_UPDATE_SYSFS);
+
+        return rc;
+}
+#endif
+
 static ssize_t backlight_show_brightness(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
@@ -249,6 +291,10 @@ static struct device_attribute bl_device_attributes[] = {
 		     NULL),
 	__ATTR(max_brightness, 0444, backlight_show_max_brightness, NULL),
 	__ATTR(type, 0444, backlight_show_type, NULL),
+#if defined (CONFIG_MACH_STAR_P990) || (CONFIG_MACH_STAR_SU660)
+        __ATTR(brightness_mode, 0666, backlight_show_brightnessmode,
+                     backlight_store_brightnessmode),
+#endif
 	__ATTR_NULL,
 };
 
