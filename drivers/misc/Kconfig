@@ -603,5 +603,6 @@ source "drivers/misc/carma/Kconfig"
 source "drivers/misc/inv_mpu/Kconfig"
 source "drivers/misc/tegra-baseband/Kconfig"
 source "drivers/misc/tegra-cec/Kconfig"
+source "drivers/misc/kowalski/Kconfig"
 
 endif # MISC_DEVICES
