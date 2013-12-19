@@ -1,0 +1,77 @@
+#
+# Kowalski Kernel Optimizations
+#
+
+menuconfig KOWALSKI
+	bool "Kowalski Kernel Optimizations"
+	depends on EXPERIMENTAL
+	default n
+	help
+	  This option enables support for specific Kowalski
+	  Kernel Optimizations.
+
+if KOWALSKI
+
+config KOWALSKI_KNOCK_KNOCK
+	bool "Knock Knock to Wake / Sleep"
+	default n
+
+config KOWALSKI_RAMHACK
+	bool "Reduce the kernel carveout"
+	default n
+	help
+		Old Bootloader: 24M
+		New Bootloader: 32M
+
+config KOWALSKI_FAST_CHARGE
+	bool "Simulate AC charging mode on USB"
+	default n
+	help
+	  A simple sysfs interface to force adapters that
+	  are detected as USB to charge as AC.
+
+config KOWALSKI_WIFI_PM
+	bool "Enable WiFi Extended Power Management"
+	default n
+	help
+	  This will enable a set of sysfs entries allowing
+	  the configuration of the wifi pm modes from user
+	  space.
+
+config KOWALSKI_OC
+	bool "Enable Overclocking"
+	depends on TEGRA_CPU_DVFS && TEGRA_CORE_DVFS
+	default n
+
+config KOWALSKI_MAX_OC
+	bool "Enable Extreme Overclocking (above 1.25)"
+	depends on KOWALSKI_OC
+	default n
+
+config KOWALSKI_UV
+	bool "Enable Voltage Control"
+	depends on TEGRA_CPU_DVFS && TEGRA_CORE_DVFS
+	default n
+
+config KOWALSKI_CPU_SUSPEND_FREQ_LIMIT
+	bool "Enable CPU Clock Frequency Limit in Suspend"
+	depends on TEGRA_CPU_DVFS && TEGRA_CORE_DVFS
+	default n
+
+config KOWALSKI_CPU_CONTROL
+	bool "Enable single/dual core dynamic mode via sysfs"
+	default n
+
+config KOWALSKI_AUTO_HOTPLUG
+	bool "CPU cores auto hotplug system"
+	depends on HOTPLUG_CPU
+	depends on ARCH_TEGRA
+	depends on !TEGRA_AUTO_HOTPLUG && !CPU_FREQ_GOV_PEGASUSQ && \
+	!CPU_FREQ_GOV_HOTPLUG && KOWALSKI_CPU_CONTROL
+	default n
+
+config KOWALSKI_DYNAMIC_FSYNC
+	bool "Disable FSync when screen is on and flush buffers when it's off"
+	default n
+
+endif # KOWALSKI
