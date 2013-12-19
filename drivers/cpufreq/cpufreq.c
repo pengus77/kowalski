@@ -33,6 +33,10 @@
 
 #include <trace/events/power.h>
 
+#ifdef CONFIG_KOWALSKI_CPU_SUSPEND_FREQ_LIMIT
+unsigned int kowalski_cpu_suspend_max_freq = 1000000;
+#endif
+
 /**
  * The "cpufreq driver" - the arch- or hardware-dependent low
  * level driver of CPUFreq support, and its spinlock. This lock
@@ -571,6 +575,24 @@ static ssize_t show_bios_limit(struct cpufreq_policy *policy, char *buf)
 	return sprintf(buf, "%u\n", policy->cpuinfo.max_freq);
 }
 
+#ifdef CONFIG_KOWALSKI_CPU_SUSPEND_FREQ_LIMIT
+static ssize_t show_screen_off_max_freq(struct cpufreq_policy *policy, char *buf)
+{
+	return sprintf(buf, "%d\n", kowalski_cpu_suspend_max_freq);
+}
+
+static ssize_t store_screen_off_max_freq(struct cpufreq_policy *policy, const char *buf, size_t count)
+{
+	unsigned int max;
+	max = simple_strtoul(buf, NULL, 10);
+
+	if (max <= policy->cpuinfo.max_freq && max >= policy->cpuinfo.min_freq)
+		kowalski_cpu_suspend_max_freq = max;
+
+	return count;
+}
+#endif
+
 cpufreq_freq_attr_ro_perm(cpuinfo_cur_freq, 0400);
 cpufreq_freq_attr_ro(cpuinfo_min_freq);
 cpufreq_freq_attr_ro(cpuinfo_max_freq);
@@ -587,6 +609,9 @@ cpufreq_freq_attr_rw(scaling_governor);
 cpufreq_freq_attr_rw(scaling_setspeed);
 cpufreq_freq_attr_ro(policy_min_freq);
 cpufreq_freq_attr_ro(policy_max_freq);
+#ifdef CONFIG_KOWALSKI_CPU_SUSPEND_FREQ_LIMIT
+cpufreq_freq_attr_rw(screen_off_max_freq);
+#endif
 
 static struct attribute *default_attrs[] = {
 	&cpuinfo_min_freq.attr,
@@ -602,6 +627,9 @@ static struct attribute *default_attrs[] = {
 	&scaling_setspeed.attr,
 	&policy_min_freq.attr,
 	&policy_max_freq.attr,
+#ifdef CONFIG_KOWALSKI_CPU_SUSPEND_FREQ_LIMIT
+	&screen_off_max_freq.attr,
+#endif
 	NULL
 };
 

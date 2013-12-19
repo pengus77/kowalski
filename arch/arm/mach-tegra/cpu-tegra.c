@@ -641,6 +641,10 @@ _out:
 static int tegra_pm_notify(struct notifier_block *nb, unsigned long event,
 	void *dummy)
 {
+#ifdef CONFIG_KOWALSKI_CPU_SUSPEND_FREQ_LIMIT
+	extern unsigned int kowalski_cpu_suspend_max_freq;
+	unsigned int stored_cpu_user_cap = 0;
+#endif
 	mutex_lock(&tegra_cpu_lock);
 	if (event == PM_SUSPEND_PREPARE) {
 		is_suspended = true;
@@ -649,7 +653,21 @@ static int tegra_pm_notify(struct notifier_block *nb, unsigned long event,
 		tegra_update_cpu_speed(freq_table[suspend_index].frequency);
 		tegra_auto_hotplug_governor(
 			freq_table[suspend_index].frequency, true);
+#ifdef CONFIG_KOWALSKI_CPU_SUSPEND_FREQ_LIMIT
+		if (kowalski_cpu_suspend_max_freq) {
+			pr_info("Kowalski cpufreq suspend: setting max frequency to %d kHz\n", kowalski_cpu_suspend_max_freq);
+			stored_cpu_user_cap = cpu_user_cap;
+			cpu_user_cap = kowalski_cpu_suspend_max_freq;
+		}
+#endif
 	} else if (event == PM_POST_SUSPEND) {
+#ifdef CONFIG_KOWALSKI_CPU_SUSPEND_FREQ_LIMIT
+		if (stored_cpu_user_cap) {
+		pr_info("Kowalski cpufreq resume: restoring max frequency to %d kHz\n", stored_cpu_user_cap);
+		cpu_user_cap = stored_cpu_user_cap;
+		stored_cpu_user_cap = 0;
+}
+#endif
 		unsigned int freq;
 		is_suspended = false;
 		tegra_cpu_edp_init(true);
