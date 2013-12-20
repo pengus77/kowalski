@@ -54,7 +54,7 @@ struct gpio_keys_drvdata {
 };
 
 #if defined(CONFIG_MACH_STAR)
-extern bool tegra_is_voice_call_active();
+extern bool tegra_is_voice_call_active(void);
 bool islp1checkon = false;
 #endif
 
