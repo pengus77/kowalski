@@ -166,38 +166,6 @@ struct tty_driver 	*ifx_spi_tty_driver;
 
 int spi_err_flag=0;
 
-#define COL_SIZE 50
-static void dump_spi_buffer(const unsigned char *txt, const unsigned char *buf, int count)
-{
-	char dump_buf_str[COL_SIZE+1];
-
-	if (buf != NULL) 
-	{
-		int j = 0;
-		char *cur_str = dump_buf_str;
-		unsigned char ch;
-		while((j < COL_SIZE) && (j  < count))
-		{
-			ch = buf[j];
-			if ((ch < 32) || (ch > 126))
-			{
-				*cur_str = '.';
-			} else
-			{
-				*cur_str = ch;
-			}
-			cur_str++;
-			j++;
-		}
-		*cur_str = 0;
-		printk("%s:count:%d [%s]\n", txt, count, dump_buf_str);                        
-	}
-	else
-	{
-		printk("%s: buffer is NULL\n", txt);                 
-	}
-}
-
 #ifdef IFX_SPI_DUMP_LOG
 void ifx_dump_atcmd(char *data) 
 {
@@ -412,10 +380,6 @@ static int ifx_spi_write(struct tty_struct *tty, const unsigned char *buf, int c
 	}
 
 	IFX_SPI_DEBUG("**** \n");
-
-#ifdef LGE_DUMP_SPI_BUFFER
-	dump_spi_buffer("ifx_spi_write()", buf, count); 
-#endif
 
 	spi_data->ifx_master_initiated_transfer  = 1;
 	spi_data->ifx_spi_buf  = buf;
@@ -1042,9 +1006,6 @@ static void ifx_spi_send_and_receive_data(struct ifx_spi_data *spi_data)
 	{ 
 		if(spi_data->ifx_tty)
 		{
-#if defined(LGE_DUMP_SPI_BUFFER)
-			dump_spi_buffer("SPI RX", &spi_data->ifx_rx_buffer[4], COL_SIZE);
-#endif		
 #ifdef IFX_SPI_DUMP_LOG
 			IFX_SPI_PRINTK("SPI RX ----------------- ");
 			ifx_dump_atcmd(spi_data->ifx_rx_buffer+IFX_SPI_HEADER_SIZE+2) ;	 
@@ -1289,11 +1250,6 @@ static void ifx_spi_handle_work(struct work_struct *work)
 		IFX_SPI_TX_DEBUG("Interrupt by AP25 ===========> \n");		
 
 		ifx_spi_setup_transmission(spi_data);     
-
-#if defined(LGE_DUMP_SPI_BUFFER)
-		dump_spi_buffer("SPI TX", &spi_data->ifx_tx_buffer[4], COL_SIZE);
-#endif		
-
 		ifx_spi_send_and_receive_data(spi_data);
 
 		/* Once data transmission is completed, the MRDY signal is lowered */
