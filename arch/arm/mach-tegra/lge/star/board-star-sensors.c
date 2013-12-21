@@ -94,7 +94,11 @@
 #define MPU_GYRO_ADDR		0x68
 #define MPU_GYRO_BUS_NUM	2
 
+#if (defined(CONFIG_MACH_STAR_P990) || defined(CONFIG_MACH_STAR_P999))
+#define MPU_GYRO_ORIENTATION	{ -1, 0, 0,  0, -1, 0,   0, 0, 1 }
+#else
 #define MPU_GYRO_ORIENTATION	{ 0, -1, 0,  -1, 0, 0,   0, 0, -1 }
+#endif
 
 #define MPU_ACCEL_NAME		"kxtf9"
 #define MPU_ACCEL_IRQ_GPIO	TEGRA_GPIO_PI0
