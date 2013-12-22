@@ -47,7 +47,7 @@ extern int __init star_touch_init(void);
 extern int __init star_touch_led_init(void);
 extern void __init star_power_off_init(void);
 extern void star_bt_rfkill(void); 
-extern noinline void __init tegra_setup_bluesleep(void);
+extern noinline void __init star_setup_bluesleep(void);
 
 #define STAR_I2C_DEVICE_ADDR_MUIC		0x44
 #define STAR_I2C_DEVICE_ADDR_WM8994		0x1A // 0X34
