@@ -72,3 +72,4 @@ obj-$(CONFIG_STAR_TOUCH_LED)	+= star_led.o
 obj-$(CONFIG_TSPDRV)            += tspdrv/
 obj-$(CONFIG_STAR_HALL)		+= bu52031nvx.o
 obj-$(CONFIG_TEGRA_THROUGHPUT)	+= tegra-throughput.o
+obj-$(CONFIG_KOWALSKI)          += kowalski/
