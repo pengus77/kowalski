@@ -25,6 +25,8 @@
 
 #define DYN_FSYNC_VERSION 2
 
+extern void sync_filesystems(int wait);
+
 struct delayed_work fsync_suspend_work;
 
 bool dyn_fsync_force_off = false;

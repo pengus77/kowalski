@@ -18,6 +18,11 @@
 #include <linux/backing-dev.h>
 #include "internal.h"
 
+#ifdef CONFIG_KOWALSKI_DYNAMIC_FSYNC
+extern bool dyn_fsync_can_sync;
+extern bool dyn_fsync_active;
+#endif
+
 #define VALID_FLAGS (SYNC_FILE_RANGE_WAIT_BEFORE|SYNC_FILE_RANGE_WRITE| \
 			SYNC_FILE_RANGE_WAIT_AFTER)
 
@@ -87,7 +92,7 @@ static void sync_one_sb(struct super_block *sb, void *arg)
  * Sync all the data for all the filesystems (called by sys_sync() and
  * emergency sync)
  */
-static void sync_filesystems(int wait)
+void sync_filesystems(int wait)
 {
 	iterate_supers(sync_one_sb, &wait);
 }
@@ -165,6 +170,11 @@ SYSCALL_DEFINE1(syncfs, int, fd)
  */
 int vfs_fsync_range(struct file *file, loff_t start, loff_t end, int datasync)
 {
+#ifdef CONFIG_KOWALSKI_DYNAMIC_FSYNC
+        if (dyn_fsync_active && !dyn_fsync_can_sync)
+                return 0;
+#endif
+
 	if (!file->f_op || !file->f_op->fsync)
 		return -EINVAL;
 	return file->f_op->fsync(file, start, end, datasync);
@@ -200,11 +210,21 @@ static int do_fsync(unsigned int fd, int datasync)
 
 SYSCALL_DEFINE1(fsync, unsigned int, fd)
 {
+#ifdef CONFIG_KOWALSKI_DYNAMIC_FSYNC
+        if (dyn_fsync_active && !dyn_fsync_can_sync)
+                return 0;
+#endif
+
 	return do_fsync(fd, 0);
 }
 
 SYSCALL_DEFINE1(fdatasync, unsigned int, fd)
 {
+#ifdef CONFIG_KOWALSKI_DYNAMIC_FSYNC
+        if (dyn_fsync_active && !dyn_fsync_can_sync)
+                return 0;
+#endif
+
 	return do_fsync(fd, 1);
 }
 
@@ -218,6 +238,11 @@ SYSCALL_DEFINE1(fdatasync, unsigned int, fd)
  */
 int generic_write_sync(struct file *file, loff_t pos, loff_t count)
 {
+#ifdef CONFIG_KOWALSKI_DYNAMIC_FSYNC
+        if (dyn_fsync_active && !dyn_fsync_can_sync)
+                return 0;
+#endif
+
 	if (!(file->f_flags & O_DSYNC) && !IS_SYNC(file->f_mapping->host))
 		return 0;
 	return vfs_fsync_range(file, pos, pos + count - 1,
@@ -281,6 +306,11 @@ SYSCALL_DEFINE(sync_file_range)(int fd, loff_t offset, loff_t nbytes,
 	loff_t endbyte;			/* inclusive */
 	int fput_needed;
 	umode_t i_mode;
+
+#ifdef CONFIG_KOWALSKI_DYNAMIC_FSYNC
+        if (dyn_fsync_active && !dyn_fsync_can_sync)
+                return 0;
+#endif
 
 	ret = -EINVAL;
 	if (flags & ~VALID_FLAGS)
@@ -370,6 +400,11 @@ SYSCALL_ALIAS(sys_sync_file_range, SyS_sync_file_range);
 SYSCALL_DEFINE(sync_file_range2)(int fd, unsigned int flags,
 				 loff_t offset, loff_t nbytes)
 {
+#ifdef CONFIG_KOWALSKI_DYNAMIC_FSYNC
+        if (dyn_fsync_active && !dyn_fsync_can_sync)
+                return 0;
+#endif
+
 	return sys_sync_file_range(fd, offset, nbytes, flags);
 }
 #ifdef CONFIG_HAVE_SYSCALL_WRAPPERS
