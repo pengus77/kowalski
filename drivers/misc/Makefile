@@ -54,11 +54,7 @@ obj-$(CONFIG_WL127X_RFKILL)	+= wl127x-rfkill.o
 obj-$(CONFIG_APANIC)		+= apanic.o
 obj-$(CONFIG_SENSORS_AK8975)	+= akm8975.o
 obj-$(CONFIG_SENSORS_NCT1008)	+= nct1008.o
-ifeq ($(CONFIG_MACH_STAR), y)
-obj-$(CONFIG_BCM4329_RFKILL)	+= lbee9qmb-rfkill.o
-else
 obj-$(CONFIG_BCM4329_RFKILL)	+= bcm4329_rfkill.o
-endif
 obj-$(CONFIG_INV_SENSORS)      += inv_mpu/
 obj-$(CONFIG_BD_ADDRESS)	+= bd_address.o
 obj-y				+= bthid/
