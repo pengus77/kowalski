@@ -181,7 +181,6 @@ static unsigned int aat2870_bl_conv_to_lux(int lev);
 static int aat2870_bl_brightness_linearized(int intensity, int *level);
 static int calc_brightness(struct backlight_device *bd, int brightness);
 
-
 /* Static sysfs Functions Here */
 static int calc_brightness(struct backlight_device *bd, int brightness)
 {
@@ -211,7 +210,7 @@ static int aat2870_bl_write(struct backlight_device *bd, int addr, int data)
 
 	ret = i2c_master_send(client, msg, 2);
 	if (ret != 2) {
-		dev_err(&client->dev, "Failed to i2c master send, addr = %d data = %d %d\n", addr, data, ret);
+		// dev_err(&client->dev, "Failed to i2c master send, addr = %d data = %d %d\n", addr, data, ret);
 		goto out;
 	}
 
@@ -413,9 +412,6 @@ static int aat2870_bl_update_status(struct backlight_device *bd)
 	struct aat2870_bl_driver_data *drvdata = dev_get_drvdata(&bd->dev);
 	int brightness = bd->props.brightness;
 	int ret = 0;
-
-	if (is_suspended)
-		return 0;
 
 	if ((brightness < 0) || (brightness > bd->props.max_brightness)) {
 		dev_err(&bd->dev,
