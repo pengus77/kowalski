@@ -103,6 +103,10 @@ void sync_filesystems(int wait)
  */
 static void do_sync(void)
 {
+#ifdef CONFIG_KOWALSKI_DYNAMIC_FSYNC
+        if (dyn_fsync_active && !dyn_fsync_can_sync)
+                return 0;
+#endif
 	wakeup_flusher_threads(0);
 	sync_filesystems(0);
 	sync_filesystems(1);
