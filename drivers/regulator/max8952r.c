@@ -17,9 +17,17 @@
 #include <linux/regulator/max8952r.h>
 #include <linux/platform_device.h>
 
+#if defined(CONFIG_MACH_STAR) && defined(CONFIG_KOWALSKI_UV) && defined(CONFIG_KOWALSKI_OC)
+#define MIN_UV_VALUE 70
+#define MAX_UV_VALUE 130
+#else
+#define MIN_UV_VALUE 77
+#define MAX_UV_VALUE 140
+#endif
+
 #if defined (CONFIG_MACH_STAR)
-#define VOLTAGE_TO_VALUE(v) (((v) - 770000) / 10000)
-#define VALUE_TO_VOLTAGE(val) ((val) * 10000 + 770000)
+#define VOLTAGE_TO_VALUE(v) (((v) - (MIN_UV_VALUE*10000)) / 10000)
+#define VALUE_TO_VOLTAGE(val) ((val) * 10000 + (MIN_UV_VALUE*10000))
 #else
 #define VOLTAGE_TO_VALUE(v) (((v) - 750000) / 10000)
 #define VALUE_TO_VOLTAGE(val) ((val) * 10000 + 750000)
@@ -51,14 +59,13 @@ static const int max8952_mode0_voltages[] = {
 };
 
 static const int max8952_mode1_voltages[] = {
-#if defined( CONFIG_MACH_STAR)
-	750000, 775000, 800000, 825000, 850000, 875000, 900000, 925000, 950000, 975000, 
-	1000000, 1025000, 1050000, 1100000, 1125000,
-#ifdef CONFIG_TEGRA_OC
-	1150000, 1200000, 1225000, 1250000, 1275000, 1300000, 1325000, 1350000, 1400000,
-#endif
+#ifdef CONFIG_KOWALSKI_OC
+        700000,  750000,  780000,  830000,  870000,  900000,  930000,  980000,
+        1000000, 1080000, 1150000, 1200000,
+        1250000, 1300000
 #else
-	750000, 760000, 1040000, 1050000, 1060000, 1370000, 1380000
+        750000, 775000, 800000, 825000, 850000, 875000, 900000, 925000, 950000, 975000,
+        1000000, 1025000, 1050000, 1100000, 1125000
 #endif
 };
 

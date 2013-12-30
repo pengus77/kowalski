@@ -56,6 +56,10 @@ static DEFINE_MUTEX(tegra_cpu_lock);
 static bool is_suspended;
 static int suspend_index;
 
+#ifdef CONFIG_KOWALSKI_OC
+#define CPU_BOOT_CLOCK 1000000
+#endif
+
 static bool force_policy_max;
 
 static int force_policy_max_set(const char *arg, const struct kernel_param *kp)
@@ -84,8 +88,11 @@ static struct kernel_param_ops policy_ops = {
 };
 module_param_cb(force_policy_max, &policy_ops, &force_policy_max, 0644);
 
-
+#ifdef CONFIG_KOWALSKI_OC
+static unsigned int cpu_user_cap = CPU_BOOT_CLOCK;
+#else
 static unsigned int cpu_user_cap;
+#endif
 
 static inline void _cpu_user_cap_set_locked(void)
 {

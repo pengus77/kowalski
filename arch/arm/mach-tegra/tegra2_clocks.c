@@ -154,6 +154,12 @@
 #define AP25_EMC_INTERMEDIATE_RATE	760000000
 #define AP25_EMC_SCALING_STEP		600000000
 
+#ifdef CONFIG_KOWALSKI_OC
+#define TEGRA_MAX_CLOCK                 1500000000
+#else
+#define TEGRA_MAX_CLOCK                 1000000000
+#endif
+
 static void __iomem *reg_clk_base = IO_ADDRESS(TEGRA_CLK_RESET_BASE);
 static void __iomem *reg_pmc_base = IO_ADDRESS(TEGRA_PMC_BASE);
 static void __iomem *misc_gp_hidrev_base = IO_ADDRESS(TEGRA_APB_MISC_BASE);
@@ -2004,11 +2010,37 @@ static struct clk tegra_pll_u = {
 };
 
 static struct clk_pll_freq_table tegra_pll_x_freq_table[] = {
+#if defined(CONFIG_KOWALSKI_OC)
+        /* 1.500 GHz */
+        { 12000000, 1500000000,  875,  7, 1, 12},
+        { 13000000, 1500000000,  923,  8, 1, 12},
+        { 19200000, 1500000000,  625,  8, 1,  8},
+        { 26000000, 1500000000,  750, 13, 1, 12},
+
+        /* 1.404 GHz */
+        { 12000000, 1404000000,  936,  8, 1, 12},
+        { 13000000, 1404000000,  972,  9, 1, 12},
+        { 19200000, 1404000000,  585,  8, 1,  8},
+        { 26000000, 1404000000,  972, 18, 1, 12},
+
+        /* 1.300 GHz */
+        { 12000000, 1300000000, 650,  6,  1, 12},
+        { 13000000, 1300000000, 1000, 10, 1, 12},
+        { 19200000, 1300000000, 812,  12,  1, 8},
+        { 26000000, 1300000000, 650,  13, 1, 12},
+
 	/* 1.2 GHz */
 	{ 12000000, 1200000000, 600,  6,  1, 12},
 	{ 13000000, 1200000000, 923,  10, 1, 12},
 	{ 19200000, 1200000000, 750,  12, 1, 8},
 	{ 26000000, 1200000000, 600,  13, 1, 12},
+
+        /* 1.1 GHz */
+        { 12000000, 1100000000, 550, 6, 1, 12},
+        { 13000000, 1100000000, 770, 10, 1, 12},
+        { 19200000, 1100000000, 630, 12, 1, 8},
+        { 26000000, 1100000000, 550, 13, 1, 12},
+#endif
 
 	/* 1 GHz */
 	{ 12000000, 1000000000, 1000, 12, 1, 12},
@@ -2067,14 +2099,14 @@ static struct clk tegra_pll_x = {
 	.ops       = &tegra_pll_ops,
 	.reg       = 0xe0,
 	.parent    = &tegra_clk_m,
-	.max_rate  = 1000000000,
+	.max_rate  = TEGRA_MAX_CLOCK,
 	.u.pll = {
 		.input_min = 2000000,
 		.input_max = 31000000,
 		.cf_min    = 1000000,
 		.cf_max    = 6000000,
 		.vco_min   = 20000000,
-		.vco_max   = 1200000000,
+		.vco_max   = TEGRA_MAX_CLOCK,
 		.freq_table = tegra_pll_x_freq_table,
 		.lock_delay = 300,
 	},
@@ -2213,7 +2245,7 @@ static struct clk tegra_clk_cclk = {
 	.inputs	= mux_cclk,
 	.reg	= 0x20,
 	.ops	= &tegra_super_ops,
-	.max_rate = 1000000000,
+	.max_rate = TEGRA_MAX_CLOCK,
 };
 
 static struct clk tegra_clk_sclk = {
@@ -2642,9 +2674,9 @@ static struct tegra_sku_rate_limit sku_limits[] =
 	RATE_LIMIT("cclk",	750000000, 0x07, 0x10),
 	RATE_LIMIT("pll_x",	750000000, 0x07, 0x10),
 
-	RATE_LIMIT("cpu",	1000000000, 0x04, 0x08, 0x0F),
-	RATE_LIMIT("cclk",	1000000000, 0x04, 0x08, 0x0F),
-	RATE_LIMIT("pll_x",	1000000000, 0x04, 0x08, 0x0F),
+	RATE_LIMIT("cpu",	TEGRA_MAX_CLOCK, 0x04, 0x08, 0x0F),
+	RATE_LIMIT("cclk",	TEGRA_MAX_CLOCK, 0x04, 0x08, 0x0F),
+	RATE_LIMIT("pll_x",	TEGRA_MAX_CLOCK, 0x04, 0x08, 0x0F),
 
 	RATE_LIMIT("cpu",	1200000000, 0x14, 0x17, 0x18, 0x1B, 0x1C),
 	RATE_LIMIT("cclk",	1200000000, 0x14, 0x17, 0x18, 0x1B, 0x1C),
@@ -2742,14 +2774,37 @@ static struct cpufreq_frequency_table freq_table_1p2GHz[] = {
 	{ 5, 816000 },
 	{ 6, 912000 },
 	{ 7, 1000000 },
-	{ 8, 1200000 },
-	{ 9, CPUFREQ_TABLE_END },
+	{ 8, 1100000 },
+	{ 9, 1200000 },
+	{ 10, CPUFREQ_TABLE_END },
 };
+
+#ifdef CONFIG_KOWALSKI_OC
+static struct cpufreq_frequency_table freq_table_1p5GHz[] = {
+        { 0, 216000 },
+        { 1, 312000 },
+        { 2, 456000 },
+        { 3, 608000 },
+        { 4, 760000 },
+        { 5, 816000 },
+        { 6, 912000 },
+        { 7, 1000000 },
+        { 8, 1100000 },
+        { 9, 1200000 },
+        {10, 1300000 },
+        {11, 1404000 },
+        {12, 1500000 },
+        {13, CPUFREQ_TABLE_END },
+};
+#endif
 
 static struct tegra_cpufreq_table_data cpufreq_tables[] = {
 	{ freq_table_750MHz, 1, 4 },
 	{ freq_table_1p0GHz, 2, 6 },
 	{ freq_table_1p2GHz, 2, 7 },
+#if defined(CONFIG_KOWALSKI_OC)
+        { freq_table_1p5GHz, 2, 6 },
+#endif // CONFIG_KOWALSKI_OC
 };
 
 struct tegra_cpufreq_table_data *tegra_cpufreq_table_get(void)

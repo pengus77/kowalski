@@ -37,6 +37,12 @@
 unsigned int kowalski_cpu_suspend_max_freq = 1000000;
 #endif
 
+#ifdef CONFIG_KOWALSKI_UV
+#include "../dvfs.h"
+int *UV_mV_Ptr;
+extern struct dvfs *cpu_dvfs;
+#endif
+
 /**
  * The "cpufreq driver" - the arch- or hardware-dependent low
  * level driver of CPUFreq support, and its spinlock. This lock
@@ -575,6 +581,46 @@ static ssize_t show_bios_limit(struct cpufreq_policy *policy, char *buf)
 	return sprintf(buf, "%u\n", policy->cpuinfo.max_freq);
 }
 
+#ifdef CONFIG_KOWALSKI_UV
+static ssize_t show_UV_mV_table(struct cpufreq_policy *policy, char *buf)
+{
+        int i;
+        char *table = buf;
+
+        if (cpu_dvfs == NULL)
+                return sprintf(buf, "INIT\n");
+
+        for (i = cpu_dvfs->num_freqs - 1; i >= 0; i--) {
+                table += sprintf(table, "%limhz: %d mV\n", cpu_dvfs->freqs[i]/1000000, cpu_dvfs->millivolts[i] - UV_mV_Ptr[i]);
+        }
+        table += sprintf(table, "\n");
+        return table - buf;
+}
+
+static ssize_t store_UV_mV_table(struct cpufreq_policy *policy, const char *buf, size_t count)
+{
+        char *p = buf, *k;
+        long uv;
+        int i = cpu_dvfs->num_freqs - 1;
+
+        while (i >= 0) {
+                k = strsep(&p, " ");
+                if (k == NULL)
+                        break;
+                if (strlen(k) > 0) {
+                        uv = simple_strtol(k, NULL, 10);
+                        UV_mV_Ptr[i] = cpu_dvfs->millivolts[i] - uv;
+                        i--;
+                }
+        }
+
+        if (i == cpu_dvfs->num_freqs - 1)
+                return -EINVAL;
+
+        return count;
+}
+#endif
+
 #ifdef CONFIG_KOWALSKI_CPU_SUSPEND_FREQ_LIMIT
 static ssize_t show_screen_off_max_freq(struct cpufreq_policy *policy, char *buf)
 {
@@ -609,6 +655,11 @@ cpufreq_freq_attr_rw(scaling_governor);
 cpufreq_freq_attr_rw(scaling_setspeed);
 cpufreq_freq_attr_ro(policy_min_freq);
 cpufreq_freq_attr_ro(policy_max_freq);
+
+#ifdef CONFIG_KOWALSKI_UV
+cpufreq_freq_attr_rw(UV_mV_table);
+#endif
+
 #ifdef CONFIG_KOWALSKI_CPU_SUSPEND_FREQ_LIMIT
 cpufreq_freq_attr_rw(screen_off_max_freq);
 #endif
@@ -627,6 +678,11 @@ static struct attribute *default_attrs[] = {
 	&scaling_setspeed.attr,
 	&policy_min_freq.attr,
 	&policy_max_freq.attr,
+
+#ifdef CONFIG_KOWALSKI_UV
+        &UV_mV_table.attr,
+#endif
+
 #ifdef CONFIG_KOWALSKI_CPU_SUSPEND_FREQ_LIMIT
 	&screen_off_max_freq.attr,
 #endif
@@ -2058,6 +2114,10 @@ static int __init cpufreq_core_init(void)
 {
 	int cpu;
 	int rc;
+
+#ifdef CONFIG_KOWALSKI_UV
+        UV_mV_Ptr = kzalloc(sizeof(int)*(MAX_DVFS_FREQS), GFP_KERNEL);
+#endif
 
 	for_each_possible_cpu(cpu) {
 		per_cpu(cpufreq_policy_cpu, cpu) = -1;
