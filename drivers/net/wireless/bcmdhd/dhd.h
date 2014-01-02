@@ -97,6 +97,10 @@ enum dhd_bus_state {
 
 #define DYNAMIC_DTIM_SKIP 1
 
+#define MAX_DTIM_SKIP_BEACON_INTERVAL	100 /* max allowed associated AP beacon for DTIM skip */
+#define MAX_DTIM_ALLOWED_INTERVAL 600 /* max allowed total beacon interval for DTIM skip */
+#define NO_DTIM_SKIP 1
+
 enum dhd_bus_wake_state {
 	WAKE_LOCK_OFF,
 	WAKE_LOCK_PRIV,
