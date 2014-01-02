@@ -31,16 +31,14 @@
 #include <linux/syscore_ops.h>
 #include <linux/pm_qos_params.h>
 
+#ifdef CONFIG_KOWALSKI_UV
+#include "../../arch/arm/mach-tegra/dvfs.h"
+#endif
+
 #include <trace/events/power.h>
 
 #ifdef CONFIG_KOWALSKI_CPU_SUSPEND_FREQ_LIMIT
 unsigned int kowalski_cpu_suspend_max_freq = 1000000;
-#endif
-
-#ifdef CONFIG_KOWALSKI_UV
-#include "../dvfs.h"
-int *UV_mV_Ptr;
-extern struct dvfs *cpu_dvfs;
 #endif
 
 /**
@@ -584,40 +582,48 @@ static ssize_t show_bios_limit(struct cpufreq_policy *policy, char *buf)
 #ifdef CONFIG_KOWALSKI_UV
 static ssize_t show_UV_mV_table(struct cpufreq_policy *policy, char *buf)
 {
-        int i;
-        char *table = buf;
+	int i;
+	char *table = buf;
 
-        if (cpu_dvfs == NULL)
-                return sprintf(buf, "INIT\n");
+	struct clk *cpu = tegra_get_clock_by_name("cpu");
+	struct dvfs *dvfs = cpu->dvfs;
 
-        for (i = cpu_dvfs->num_freqs - 1; i >= 0; i--) {
-                table += sprintf(table, "%limhz: %d mV\n", cpu_dvfs->freqs[i]/1000000, cpu_dvfs->millivolts[i] - UV_mV_Ptr[i]);
-        }
-        table += sprintf(table, "\n");
-        return table - buf;
+	if (dvfs == NULL)
+		return sprintf(buf, "INIT\n");
+
+	for (i = dvfs->num_freqs - 1; i >= 0; i--) {
+		table += sprintf(table, "%limhz: %d mV\n", dvfs->freqs[i]/1000000, dvfs->millivolts[i]);
+	}
+	table += sprintf(table, "\n");
+
+	return table - buf;
 }
 
 static ssize_t store_UV_mV_table(struct cpufreq_policy *policy, const char *buf, size_t count)
 {
-        char *p = buf, *k;
-        long uv;
-        int i = cpu_dvfs->num_freqs - 1;
+	char *p = buf, *k;
+	long uv;
 
-        while (i >= 0) {
-                k = strsep(&p, " ");
-                if (k == NULL)
-                        break;
-                if (strlen(k) > 0) {
-                        uv = simple_strtol(k, NULL, 10);
-                        UV_mV_Ptr[i] = cpu_dvfs->millivolts[i] - uv;
-                        i--;
-                }
-        }
+	struct clk *cpu = tegra_get_clock_by_name("cpu");
+	struct dvfs *dvfs = cpu->dvfs;
 
-        if (i == cpu_dvfs->num_freqs - 1)
-                return -EINVAL;
+	int i = dvfs->num_freqs - 1;
 
-        return count;
+	while (i >= 0) {
+		k = strsep(&p, " ");
+		if (k == NULL)
+			break;
+		if (strlen(k) > 0) {
+			uv = simple_strtol(k, NULL, 10);
+			dvfs->millivolts[i] = uv;
+			i--;
+		}
+	}
+
+	if (i == dvfs->num_freqs - 1)
+		return -EINVAL;
+
+	return count;
 }
 #endif
 
@@ -680,7 +686,7 @@ static struct attribute *default_attrs[] = {
 	&policy_max_freq.attr,
 
 #ifdef CONFIG_KOWALSKI_UV
-        &UV_mV_table.attr,
+	&UV_mV_table.attr,
 #endif
 
 #ifdef CONFIG_KOWALSKI_CPU_SUSPEND_FREQ_LIMIT
@@ -2114,10 +2120,6 @@ static int __init cpufreq_core_init(void)
 {
 	int cpu;
 	int rc;
-
-#ifdef CONFIG_KOWALSKI_UV
-        UV_mV_Ptr = kzalloc(sizeof(int)*(MAX_DVFS_FREQS), GFP_KERNEL);
-#endif
 
 	for_each_possible_cpu(cpu) {
 		per_cpu(cpufreq_policy_cpu, cpu) = -1;
