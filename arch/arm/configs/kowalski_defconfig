@@ -1226,6 +1226,7 @@ CONFIG_WLAN=y
 CONFIG_BCMDHD=y
 CONFIG_BCMDHD_FW_PATH="/system/vendor/firmware/fw_bcmdhd.bin"
 CONFIG_BCMDHD_NVRAM_PATH="/system/etc/nvram_4329.txt"
+CONFIG_DHD_USE_SCHED_SCAN=y
 # CONFIG_BCM4329 is not set
 # CONFIG_BCM4329_FIRST_SCAN is not set
 # CONFIG_BCM4329_FW_PATH is not set
