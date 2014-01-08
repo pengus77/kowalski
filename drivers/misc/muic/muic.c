@@ -59,7 +59,7 @@
 #endif
 
 #ifdef	CONFIG_BATTERY_CHARGER
-#include <linux/su660_battery.h> 
+#include <linux/kowalski_battery.h> 
 #endif
 
 #ifdef  CONFIG_BSSQ_BATTERY
@@ -477,33 +477,12 @@ static ssize_t muic_proc_write(struct file *filp, const char *buf, size_t len, l
 #endif
 		case 'n':
 			printk(KERN_DEBUG "TA <==> DEVICE charger connection [%d] [%d]\n",g_half_charging_control,charging_mode);
-			switch (g_half_charging_control) {
-				case CHARGING_USB:
-					charger_ic_set_mode_for_muic(CHARGER_USB500); 
-					break;
-
-				case CHARGING_NA_TA:
-				case CHARGING_LG_TA:
-				case CHARGING_TA_1A:
-					charger_ic_set_mode_for_muic(CHARGER_ISET);
-					break;
-
-				case CHARGING_FACTORY:
-					break;
-
-				case CHARGING_NONE:
-					charger_ic_disable_for_muic();
-					break;
-
-				default:
-					charger_ic_disable_for_muic();
-					break;
-			}				
+			muic_send_charger_type(g_half_charging_control);
 			break;		
 		case 'd':
 			printk(KERN_DEBUG "TA =\\=  DEVICE charger disconnection %d\n",charging_mode);
 			g_half_charging_control=charging_mode;
-			charger_ic_disable_for_muic();
+			muic_send_charger_type(g_half_charging_control);
 			break;	
 
 		case 'k':
@@ -586,32 +565,8 @@ EXPORT_SYMBOL(get_muic_charger_type);
 
 void muic_send_charger_type(TYPE_CHARGING_MODE mode)
 {
-#ifdef CONFIG_BATTERY_CHARGER
-	switch (mode) {
-		case CHARGING_USB:
-			charger_ic_set_mode_for_muic(CHARGER_USB500); 
-			break;
-
-		case CHARGING_NA_TA:
-		case CHARGING_LG_TA:
-		case CHARGING_TA_1A:
-			charger_ic_set_mode_for_muic(CHARGER_ISET);
-			break;
-
-		case CHARGING_FACTORY:
-			break;
-
-		case CHARGING_NONE:
-			charger_ic_disable_for_muic();
-			break;
-
-		default:
-			charger_ic_disable_for_muic();
-			break;
-	}
-#endif  
-	// Notify To Battery 
-	notification_of_changes_to_battery();
+	// Notify To Battery
+	notification_of_changes_to_battery(mode);
 }
 
 

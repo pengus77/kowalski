@@ -15,6 +15,17 @@
 #include <linux/rtc.h>
 #include <linux/platform_device.h>
 #include <linux/mfd/max8907c.h>
+#if defined(CONFIG_MACH_STAR)
+#include "../../arch/arm/mach-tegra/lge/star/include/lge/board-star-nv.h"
+#endif
+
+#define RTC_DEBUG 0
+
+#if RTC_DEBUG
+#define DBG(fmt, arg...) bprintk("[RTC] : %s : " fmt "\n", __func__, ## arg)
+#else
+#define DBG(fmt, arg...) do {} while (0)
+#endif
 
 enum {
 	RTC_SEC = 0,
@@ -33,14 +44,16 @@ enum {
 #define HOUR_AM_PM			(1 << 5)
 #define ALARM0_IRQ			(1 << 3)
 #define ALARM1_IRQ			(1 << 2)
-#define ALARM0_STATUS			(1 << 2)
-#define ALARM1_STATUS			(1 << 1)
+#define ALARM0_STATUS		(1 << 2)
+#define ALARM1_STATUS		(1 << 1)
 
 struct max8907c_rtc_info {
 	struct rtc_device	*rtc_dev;
 	struct i2c_client	*i2c;
 	struct max8907c		*chip;
 };
+
+struct max8907c_rtc_info *rtc_info;
 
 static irqreturn_t rtc_update_handler(int irq, void *data)
 {
@@ -49,6 +62,7 @@ static irqreturn_t rtc_update_handler(int irq, void *data)
 	/* disable ALARM0 except for 1SEC alarm */
 	max8907c_set_bits(info->i2c, MAX8907C_REG_ALARM0_CNTL, 0x7f, 0);
 	rtc_update_irq(info->rtc_dev, 1, RTC_IRQF | RTC_AF);
+
 	return IRQ_HANDLED;
 }
 
@@ -61,8 +75,6 @@ static int tm_calc(struct rtc_time *tm, u8 *buf, int len)
 			+ (buf[RTC_YEAR1] >> 4) * 10
 			+ (buf[RTC_YEAR1] & 0xf);
 	tm->tm_year -= 1900;
-	/* RTC month index issue in max8907c
-	    : January index is 1 but kernel assumes it as 0 */
 	tm->tm_mon = ((buf[RTC_MONTH] >> 4) & 0x01) * 10
 			+ (buf[RTC_MONTH] & 0x0f) - 1;
 	tm->tm_mday = ((buf[RTC_DATE] >> 4) & 0x03) * 10
@@ -100,13 +112,9 @@ static int data_calc(u8 *buf, struct rtc_time *tm, int len)
 	low = low - high * 10;
 	high = high - (high / 10) * 10;
 	buf[RTC_YEAR1] = (high << 4) + low;
-
-	/* RTC month index issue in max8907c
-	    : January index is 1 but kernel assumes it as 0 */
 	high = (tm->tm_mon + 1) / 10;
 	low = (tm->tm_mon + 1) % 10;
 	buf[RTC_MONTH] = (high << 4) + low;
-
 	high = tm->tm_mday / 10;
 	low = tm->tm_mday;
 	low = low - high * 10;
@@ -212,6 +220,172 @@ static const struct rtc_class_ops max8907c_rtc_ops = {
 	.set_alarm	= max8907c_rtc_set_alarm,
 };
 
+#ifdef CONFIG_MACH_STAR
+
+/* Export Functions */
+int max8907c_rtc_count_read(unsigned int *count)
+{
+	struct rtc_time tm;
+	unsigned char buf[TIME_NUM];
+	int ret;
+
+	if (!rtc_info)
+		return 0;
+
+	ret = max8907c_reg_bulk_read(rtc_info->i2c, MAX8907C_REG_RTC_SEC, TIME_NUM, buf);
+	if(ret < 0)
+		return ret;
+
+	/* Calculate */
+	ret = tm_calc(&tm, buf, TIME_NUM);
+	if(ret < 0)
+		return ret;
+
+	/* Make Time */
+	DBG("Getting Time [%04d][%02d][%02d][%02d][%02d][%02d]\n",
+			tm.tm_year, tm.tm_mon, tm.tm_mday,
+			tm.tm_hour, tm.tm_min, tm.tm_sec);
+	*count = mktime(tm.tm_year, tm.tm_mon, tm.tm_mday,
+					tm.tm_hour, tm.tm_min, tm.tm_sec);
+	
+	return *count;
+}
+EXPORT_SYMBOL(max8907c_rtc_count_read);
+
+int max8907c_rtc_alarm_count_read(unsigned int *count)
+{
+	struct rtc_wkalrm alrm;
+	unsigned char buf[TIME_NUM];
+	int ret;
+	
+	if (!rtc_info)
+		return 0;
+
+	ret = max8907c_reg_bulk_read(rtc_info->i2c, MAX8907C_REG_ALARM0_SEC, TIME_NUM, buf);
+	if (ret < 0)
+		return ret;
+	
+	/* Calculate */
+	ret = tm_calc(&alrm.time, buf, TIME_NUM);
+	if (ret < 0)
+		return ret;
+	
+	/* Read IRQ */
+	ret = max8907c_reg_read(rtc_info->i2c, MAX8907C_REG_RTC_IRQ_MASK);
+	if (ret < 0)
+		return ret;
+	
+	/* Set Other Variables */
+	if ((ret & ALARM0_IRQ) == 0)
+		alrm.enabled = 1;
+	else
+		alrm.enabled = 0;
+
+	ret = max8907c_reg_read(rtc_info->i2c, MAX8907C_REG_RTC_STATUS);
+	if (ret < 0)
+		return ret;
+
+	if (ret & ALARM0_STATUS)
+		alrm.pending = 1;
+	else
+		alrm.pending = 0;
+	
+	/* Make Time */
+	DBG("Getting Alarm [%04d][%02d][%02d][%02d][%02d][%02d]\n",
+			alrm.time.tm_year, alrm.time.tm_mon, alrm.time.tm_mday,
+			alrm.time.tm_hour, alrm.time.tm_min, alrm.time.tm_sec);
+	*count = mktime(alrm.time.tm_year, alrm.time.tm_mon, alrm.time.tm_mday,
+					alrm.time.tm_hour, alrm.time.tm_min, alrm.time.tm_sec);
+	
+	return *count;
+}
+EXPORT_SYMBOL(max8907c_rtc_alarm_count_read);
+
+int max8907c_rtc_count_write(unsigned int count)
+{
+	struct rtc_time tm;
+	unsigned char buf[TIME_NUM];
+	int ret;
+
+	if (!rtc_info)
+		return 0;
+
+	/* Count to tm */
+	rtc_time_to_tm(count, &tm);
+
+	/* Fill Buffer */
+	ret = data_calc(buf, &tm, TIME_NUM);
+	if (ret < 0)
+		return ret;
+
+	ret = max8907c_reg_bulk_write(rtc_info->i2c, MAX8907C_REG_RTC_SEC, TIME_NUM, buf);
+	if(ret < 0)
+		return ret;
+
+	DBG("Setting Time [%04d][%02d][%02d][%02d][%02d][%02d]\n",
+			tm.tm_year, tm.tm_mon, tm.tm_mday,
+			tm.tm_hour, tm.tm_min, tm.tm_sec);
+
+	return 1;
+}
+EXPORT_SYMBOL(max8907c_rtc_count_write);
+
+int max8907c_rtc_alarm_write(unsigned int count)
+{
+	struct rtc_time tm;
+	unsigned char buf[TIME_NUM];
+	int ret;
+
+	if (!rtc_info)
+		return 0;
+
+	/* Count to tm */
+	rtc_time_to_tm(count, &tm);
+	
+	/* Fill Buffer */
+	ret = data_calc(buf, &tm, TIME_NUM);
+	if (ret < 0)
+		return ret;
+	
+	ret = max8907c_reg_bulk_write(rtc_info->i2c, MAX8907C_REG_ALARM0_SEC, TIME_NUM, buf);
+	if (ret < 0)
+		return ret;
+	
+	/* only enable alarm on year/month/day/hour/min/sec */
+	ret = max8907c_reg_write(rtc_info->i2c, MAX8907C_REG_ALARM0_CNTL, 0x77);
+
+	DBG("Setting Alarm [%04d][%02d][%02d][%02d][%02d][%02d]\n",
+			tm.tm_year, tm.tm_mon, tm.tm_mday,
+			tm.tm_hour, tm.tm_min, tm.tm_sec);
+
+	return 1;
+}
+EXPORT_SYMBOL(max8907c_rtc_alarm_write);
+
+static ssize_t max8907c_rtc_show_smplcount(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	char smplcount = 0;
+	lge_nvdata_read(LGE_NVDATA_SMPL_COUNT_OFFSET, &smplcount,1);
+	return sprintf(buf, "%d\n", smplcount);
+}
+
+static ssize_t max8907c_rtc_store_smplcount(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+	unsigned long val = simple_strtoul(buf, NULL, 10);
+
+	if(val == 0)
+	{
+		char smplcount = 0;
+		lge_nvdata_write(LGE_NVDATA_SMPL_COUNT_OFFSET, &smplcount,1);		
+	}
+
+	return count;
+}
+
+static DEVICE_ATTR(smplcount, 0660, max8907c_rtc_show_smplcount,  max8907c_rtc_store_smplcount);
+#endif
 static int __devinit max8907c_rtc_probe(struct platform_device *pdev)
 {
 	struct max8907c *chip = dev_get_drvdata(pdev->dev.parent);
@@ -248,7 +422,15 @@ static int __devinit max8907c_rtc_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, info);
 
 	device_init_wakeup(&pdev->dev, 1);
-
+#ifdef CONFIG_MACH_STAR
+	ret = device_create_file(&pdev->dev, &dev_attr_smplcount);
+	if (ret < 0) {
+		dev_err(&pdev->dev,
+				"%s: failed to add smplcount sysfs: %d\n",
+				__func__, ret);
+	}
+	rtc_info = info;
+#endif
 	return 0;
 out_rtc:
 	free_irq(chip->irq_base + MAX8907C_IRQ_RTC_ALARM0, info);
