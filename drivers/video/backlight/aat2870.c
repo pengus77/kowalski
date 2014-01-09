@@ -51,6 +51,7 @@
 #endif
 
 static bool is_suspended = false;
+static bool lock_commands = false;
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 static void aat2870_bl_early_suspend(struct early_suspend *h);
@@ -180,6 +181,17 @@ static void aat2870_bl_switch_mode(int op_mode);
 static unsigned int aat2870_bl_conv_to_lux(int lev);
 static int aat2870_bl_brightness_linearized(int intensity, int *level);
 static int calc_brightness(struct backlight_device *bd, int brightness);
+
+void report_input_to_backlight(int code, int state)
+{
+	if (code == 116 && state == 1) {
+		if (is_suspended && lock_commands)
+			lock_commands = false;
+		else if (! lock_commands)
+			lock_commands = true;
+	}
+}
+EXPORT_SYMBOL(report_input_to_backlight);
 
 /* Static sysfs Functions Here */
 static int calc_brightness(struct backlight_device *bd, int brightness)
@@ -389,6 +401,10 @@ static int aat2870_bl_update_modestatus(struct backlight_device *bd)
 	struct aat2870_bl_driver_data *drv;
 
 	brightness_mode = bd->props.brightness_mode;
+
+	if (lock_commands)
+		return 0;
+
 	drv = dev_get_drvdata(&bd->dev);
 
 	if(brightness_mode == 1)
@@ -1134,10 +1150,16 @@ static int aat2870_bl_suspend(struct i2c_client *client, pm_message_t state)
 	struct aat2870_bl_driver_data *drvdata = i2c_get_clientdata(client);
 	struct backlight_device *bd = drvdata->bd;
 
+	aat2870_bl_disable(bd);
+
+	if (lock_commands && drvdata->op_mode == AAT2870_OP_MODE_ALC) {
+		aat2870_bl_switch_mode(AAT2870_OP_MODE_NORMAL);
+		drvdata->op_mode = AAT2870_OP_MODE_NORMAL;
+	}
+
 	dev_info(&client->dev, "suspend\n");
 	is_suspended = true;
 
-	aat2870_bl_disable(bd);
 	return 0;
 }
 
