@@ -26,7 +26,7 @@
 
 #include <linux/power_supply.h>
 
-#define MUIC_SLEEP	         1
+// #define MUIC_SLEEP	         1
 #define CONFIG_LGE_MUIC_DP3T 1
 #define CONFIG_USIF          1
 #if defined (CONFIG_MACH_STAR)
