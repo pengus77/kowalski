@@ -650,22 +650,17 @@ _out:
 
 #ifdef CONFIG_KOWALSKI_CPU_SUSPEND_FREQ_LIMIT
 extern unsigned int kowalski_cpu_suspend_max_freq;
-static unsigned int stored_cpu_user_cap = 0;
 
 static void cpu_tegra_suspend(struct early_suspend *handler) {
-        if (kowalski_cpu_suspend_max_freq) {
-                pr_info("Kowalski cpufreq suspend: setting max frequency to %d kHz\n", kowalski_cpu_suspend_max_freq);
-                stored_cpu_user_cap = cpu_user_cap;
-                cpu_user_cap = kowalski_cpu_suspend_max_freq;
-        }
+	if (kowalski_cpu_suspend_max_freq) {
+		cpu_user_cap = kowalski_cpu_suspend_max_freq;
+		pr_info("Kowalski cpufreq suspend: setting max frequency to %d kHz\n", kowalski_cpu_suspend_max_freq);
+	}
 }
 
 static void cpu_tegra_resume(struct early_suspend *handler) {
-        if (stored_cpu_user_cap) {
-                pr_info("Kowalski cpufreq resume: restoring max frequency to %d kHz\n", stored_cpu_user_cap);
-                cpu_user_cap = stored_cpu_user_cap;
-                stored_cpu_user_cap = 0;
-        }
+	cpu_user_cap = policy_max_speed[0];
+	pr_info("Kowalski cpufreq resume: restoring max frequency to %d kHz\n", cpu_user_cap);
 }
 
 static struct early_suspend cpu_tegra_suspend_handler = {
