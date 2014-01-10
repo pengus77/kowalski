@@ -185,10 +185,13 @@ static int calc_brightness(struct backlight_device *bd, int brightness);
 void report_input_to_backlight(int code, int state)
 {
 	if (code == 116 && state == 1) {
-		if (is_suspended && lock_commands)
+		if (is_suspended && lock_commands) {
 			lock_commands = false;
-		else if (! lock_commands)
+			dbg("all commands sent to the backlight will now be accepted\n");
+		} else if (!is_suspended && !lock_commands) {
 			lock_commands = true;
+			dbg("all commands sent to the backlight will now be rejected\n");
+		}
 	}
 }
 EXPORT_SYMBOL(report_input_to_backlight);
@@ -247,8 +250,6 @@ static int aat2870_bl_read(struct backlight_device *bd, int addr)
 static void aat2870_bl_enable(struct backlight_device *bd)
 {
 	struct aat2870_bl_driver_data *drvdata = dev_get_drvdata(&bd->dev);
-
-	dbg("enable\n");
 
 	if (is_suspended)
 		return;
@@ -500,9 +501,6 @@ static unsigned int aat2870_bl_conv_to_lux(int lev)
 static int aat2870_bl_send_cmd(struct aat2870_bl_driver_data *drv, struct aat2870_ctl_tbl_t *tbl)
 {
 	unsigned long delay = 0;
-
-	if (is_suspended)
-		return 0;
 
 	if (tbl == NULL) {
 		dbg("input ptr is null\n");
@@ -907,8 +905,10 @@ static ssize_t aat2870_bl_store_alc_table(struct device *dev, struct device_attr
 	}
 
 	drv->cmds.alc = tbl;
+	printk("%s: sent new table to the backlight driver !\n", __FUNCTION__);
+
 	if (drv->op_mode == AAT2870_OP_MODE_ALC) {
-		printk("%s: sent new table to the backlight driver !\n", __FUNCTION__);
+		printk("%s: enabled new table in the backlight driver !\n", __FUNCTION__);
 		aat2870_bl_send_cmd(drv, tbl);
 	}
 
@@ -1157,9 +1157,6 @@ static int aat2870_bl_suspend(struct i2c_client *client, pm_message_t state)
 		drvdata->op_mode = AAT2870_OP_MODE_NORMAL;
 	}
 
-	dev_info(&client->dev, "suspend\n");
-	is_suspended = true;
-
 	return 0;
 }
 
@@ -1167,9 +1164,6 @@ static int aat2870_bl_resume(struct i2c_client *client)
 {
 	struct aat2870_bl_driver_data *drvdata = i2c_get_clientdata(client);
 	struct backlight_device *bd = drvdata->bd;
-
-	dev_info(&client->dev, "resume\n");
-	is_suspended = false;
 
 	/* Restore backlight */
 	backlight_update_status(bd);
@@ -1190,6 +1184,12 @@ static int aat2870_bl_resume(struct i2c_client *client)
 static void aat2870_bl_early_suspend(struct early_suspend *h)
 {
 	struct aat2870_bl_driver_data *drvdata;
+
+	if (!lock_commands)
+		lock_commands = true;
+
+	is_suspended = true;
+
 	drvdata = container_of(h, struct aat2870_bl_driver_data, early_suspend);
 	aat2870_bl_suspend(drvdata->client, PMSG_SUSPEND);
 }
@@ -1197,6 +1197,12 @@ static void aat2870_bl_early_suspend(struct early_suspend *h)
 static void aat2870_bl_late_resume(struct early_suspend *h)
 {
 	struct aat2870_bl_driver_data *drvdata;
+
+	if (lock_commands)
+		lock_commands = false;
+
+	is_suspended = false;
+
 	drvdata = container_of(h, struct aat2870_bl_driver_data, early_suspend);
 	aat2870_bl_resume(drvdata->client);
 }
