@@ -51,7 +51,6 @@
 #endif
 
 static bool is_suspended = false;
-static bool lock_commands = false;
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 static void aat2870_bl_early_suspend(struct early_suspend *h);
@@ -59,6 +58,7 @@ static void aat2870_bl_late_resume(struct early_suspend *h);
 #endif
 
 struct aat2870_bl_driver_data *aat2870_bl_drvdata;
+struct delayed_work delayed_mc_work;
 
 // flag indicating ALS enable
 static bool als_enabled = false;
@@ -182,20 +182,6 @@ static unsigned int aat2870_bl_conv_to_lux(int lev);
 static int aat2870_bl_brightness_linearized(int intensity, int *level);
 static int calc_brightness(struct backlight_device *bd, int brightness);
 
-void report_input_to_backlight(int code, int state)
-{
-	if (code == 116 && state == 1) {
-		if (is_suspended && lock_commands) {
-			lock_commands = false;
-			dbg("all commands sent to the backlight will now be accepted\n");
-		} else if (!is_suspended && !lock_commands) {
-			lock_commands = true;
-			dbg("all commands sent to the backlight will now be rejected\n");
-		}
-	}
-}
-EXPORT_SYMBOL(report_input_to_backlight);
-
 /* Static sysfs Functions Here */
 static int calc_brightness(struct backlight_device *bd, int brightness)
 {
@@ -260,7 +246,7 @@ static void aat2870_bl_enable(struct backlight_device *bd)
 		gpio_set_value(drvdata->en_pin, 1);
 		udelay(100);
 
-		if (als_enabled == false) {
+		if (drvdata->op_mode == AAT2870_OP_MODE_NORMAL) {
 			dbg("Debugging Here : Default Flows\n");
 
 			/* Non ALC mode */
@@ -396,31 +382,42 @@ static int aat2870_bl_get_brightness(struct backlight_device *bd)
 	return bd->props.brightness;
 }
 
+static void delayed_mc_work_func(struct work_struct *wq)
+{
+	struct aat2870_bl_driver_data *drv;
+	struct backlight_device *bd;
+        int brightness_mode, next_mode;
+
+        drv = aat2870_bl_drvdata;
+	bd = drv->bd;
+
+        brightness_mode = bd->props.brightness_mode;
+
+        if (is_suspended)
+                return;
+
+        drv = dev_get_drvdata(&bd->dev);
+
+        if(brightness_mode == 1)
+        {
+                next_mode = AAT2870_OP_MODE_ALC;
+                if (drv->lsensor_enable)
+                        schedule_delayed_work(&drv->delayed_work_bl, drv->lsensor_poll_time);
+        }
+        else
+        {
+                next_mode = AAT2870_OP_MODE_NORMAL;
+        }
+        aat2870_bl_switch_mode(next_mode);
+        drv->op_mode = next_mode;
+}
+
 static int aat2870_bl_update_modestatus(struct backlight_device *bd)
 {
-	int brightness_mode, next_mode;
-	struct aat2870_bl_driver_data *drv;
-
-	brightness_mode = bd->props.brightness_mode;
-
-	if (lock_commands)
+	if (is_suspended)
 		return 0;
 
-	drv = dev_get_drvdata(&bd->dev);
-
-	if(brightness_mode == 1)
-	{
-		next_mode = AAT2870_OP_MODE_ALC;
-		if (drv->lsensor_enable)
-			schedule_delayed_work(&drv->delayed_work_bl, drv->lsensor_poll_time);
-	}
-	else
-	{
-		next_mode = AAT2870_OP_MODE_NORMAL;
-	}
-	aat2870_bl_switch_mode(next_mode);
-	drv->op_mode = next_mode;
-
+	schedule_delayed_work(&delayed_mc_work, 1*HZ);
 	return 0;
 }
 
@@ -1062,7 +1059,7 @@ static int aat2870_bl_probe(struct i2c_client *client, const struct i2c_device_i
 
 	drvdata->brightness = 0;
 	bd->props.power = FB_BLANK_UNBLANK;
-	bd->props.brightness = (bd->props.max_brightness) / 2;
+	bd->props.brightness = (bd->props.max_brightness) / 4;
 	dbg("brightness=%d\n", bd->props.brightness);
 
 	ret = aat2870_bl_update_status(bd);
@@ -1090,6 +1087,7 @@ static int aat2870_bl_probe(struct i2c_client *client, const struct i2c_device_i
 	aat2870_bl_send_cmd(drvdata, drvdata->cmds.normal);
 
 	INIT_DELAYED_WORK(&drvdata->delayed_work_bl, aat2870_bl_work_func);
+	INIT_DELAYED_WORK(&delayed_mc_work, delayed_mc_work_func);
 
 	goto out;
 
@@ -1152,9 +1150,12 @@ static int aat2870_bl_suspend(struct i2c_client *client, pm_message_t state)
 
 	aat2870_bl_disable(bd);
 
-	if (lock_commands && drvdata->op_mode == AAT2870_OP_MODE_ALC) {
+	if (drvdata->op_mode == AAT2870_OP_MODE_ALC) {
 		aat2870_bl_switch_mode(AAT2870_OP_MODE_NORMAL);
 		drvdata->op_mode = AAT2870_OP_MODE_NORMAL;
+		als_enabled = true;
+	} else {
+		als_enabled = false;
 	}
 
 	return 0;
@@ -1164,6 +1165,11 @@ static int aat2870_bl_resume(struct i2c_client *client)
 {
 	struct aat2870_bl_driver_data *drvdata = i2c_get_clientdata(client);
 	struct backlight_device *bd = drvdata->bd;
+
+	if (als_enabled) {
+		aat2870_bl_switch_mode(AAT2870_OP_MODE_ALC);
+		drvdata->op_mode = AAT2870_OP_MODE_ALC;
+	}
 
 	/* Restore backlight */
 	backlight_update_status(bd);
@@ -1185,10 +1191,8 @@ static void aat2870_bl_early_suspend(struct early_suspend *h)
 {
 	struct aat2870_bl_driver_data *drvdata;
 
-	if (!lock_commands)
-		lock_commands = true;
-
 	is_suspended = true;
+	cancel_delayed_work(&delayed_mc_work);
 
 	drvdata = container_of(h, struct aat2870_bl_driver_data, early_suspend);
 	aat2870_bl_suspend(drvdata->client, PMSG_SUSPEND);
@@ -1197,9 +1201,6 @@ static void aat2870_bl_early_suspend(struct early_suspend *h)
 static void aat2870_bl_late_resume(struct early_suspend *h)
 {
 	struct aat2870_bl_driver_data *drvdata;
-
-	if (lock_commands)
-		lock_commands = false;
 
 	is_suspended = false;
 
