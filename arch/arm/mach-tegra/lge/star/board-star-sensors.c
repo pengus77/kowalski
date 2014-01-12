@@ -115,12 +115,7 @@
 #define MPU_COMPASS_IRQ_GPIO	TEGRA_GPIO_PR4
 #define MPU_COMPASS_ADDR	0x0E
 #define MPU_COMPASS_BUS_NUM	2
-
-#if (defined(CONFIG_MACH_STAR_P990) || defined(CONFIG_MACH_STAR_P999))
-#define MPU_COMPASS_ORIENTATION { 0, -1, 0,  1, 0, 0,   0, 0, -1 }
-#else
 #define MPU_COMPASS_ORIENTATION	{ 0, -1, 0,  -1, 0, 0,   0, 0, -1 }
-#endif
 
 #endif
 
