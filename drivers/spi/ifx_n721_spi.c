@@ -691,7 +691,7 @@ static int ifx_spi_resume(struct spi_device *spi)
 		IFX_SPI_PRINTK(" wake lock : 0x%lx", &ifx_gspi_data->wake_lock);
 		if(&ifx_gspi_data->wake_lock)
 		{
-			wake_lock_timeout(&ifx_gspi_data->wake_lock, msecs_to_jiffies(300));	// for power consumption
+			wake_lock_timeout(&ifx_gspi_data->wake_lock, msecs_to_jiffies(500));	// for power consumption
 		}
 
 		ifx_gspi_data->wake_lock_flag = 1;
@@ -1037,12 +1037,8 @@ static void ifx_spi_send_and_receive_data(struct ifx_spi_data *spi_data)
  * Function copies the TX_BUFFER and RX_BUFFER pointer to a spi_transfer structure and add it to SPI tasks.
  * And calls SPI Driver function "spi_sync" to start data transmission and reception to from MODEM
  */
-extern void kernel_restart(char *cmd);
-
 static unsigned int ifx_spi_sync_read_write(struct ifx_spi_data *spi_data, unsigned int len)
 {
-	bool spi_suspend_failed;
-
 	int status;
 	int ipc_check;
 	struct spi_message	m;
@@ -1095,16 +1091,8 @@ static unsigned int ifx_spi_sync_read_write(struct ifx_spi_data *spi_data, unsig
 	{
 		ipc_check = ifx_modem_communicating();
 		if(ipc_check == 0) 
-		{
 			IFX_SPI_PRINTK("transmission unsuccessful, [spi_sync] status:%d, count_Failed:%d\n", status, count_transfer_failed);
 
-			spi_suspend_failed = spi_tegra_suspend_failed(spi_data->spi);
-			if (spi_suspend_failed)
-			{
-				IFX_SPI_PRINTK("kernel_restart!!!, spi_suspend_failed=%d \n", spi_suspend_failed);		 
-				kernel_restart(NULL);
-			}				
-		}
 		//increase 'count_transfer_failed', when spi transter fails
 		count_transfer_failed++;		
 	}
@@ -1150,7 +1138,7 @@ static irqreturn_t ifx_spi_handle_srdy_irq(int irq, void *handle)
 
 #ifdef WAKE_LOCK_RESUME // HZ is 1sec
 	IFX_SPI_DEBUG("[IFX_SRDY] wake lock : 0x%lx", &ifx_gspi_data->wake_lock);
-	wake_lock_timeout(&ifx_gspi_data->wake_lock, msecs_to_jiffies(300));	//5,, Unexpected interrupt or power consumption
+	wake_lock_timeout(&ifx_gspi_data->wake_lock, msecs_to_jiffies(250));	//5,, Unexpected interrupt or power consumption
 #endif	
 	IFX_SPI_DEBUG("queue_work is done!");		
 	queue_work(spi_data->ifx_wq, &spi_data->ifx_work);	  

@@ -246,9 +246,6 @@ struct spi_tegra_data {
 	u32			dma_control_reg;
 	u32			def_command_reg;
 	u32			def_command2_reg;
-#if defined (CONFIG_MACH_STAR)	
-	bool                    is_suspend_failed;
-#endif
 
 	struct spi_clk_parent	*parent_clk_list;
 	int			parent_clk_count;
@@ -687,16 +684,6 @@ bool spi_tegra_is_suspend(struct spi_device *spi)
 	struct spi_tegra_data *tspi = spi_master_get_devdata(spi->master);
 
 	return tspi->is_suspended;
-}
-
-bool spi_tegra_suspend_failed(struct spi_device *spi)
-{
-	struct spi_tegra_data *tspi = spi_master_get_devdata(spi->master);
-
-	if (tspi->is_suspend_failed == true)
-		TEGRA_ERR_LOG("tspi->is_suspend_failed=%d", tspi->is_suspend_failed);
-
-	return tspi->is_suspend_failed;
 }
 #endif
 
@@ -1561,9 +1548,9 @@ static int __devexit spi_tegra_remove(struct platform_device *pdev)
 }
 
 #ifdef CONFIG_PM
-static int spi_tegra_suspend(struct platform_device *pdev, pm_message_t state)
+static int spi_tegra_suspend(struct device *dev)
 {
-	struct spi_master *master = dev_get_drvdata(&pdev->dev);
+	struct spi_master *master = dev_get_drvdata(dev);
 	struct spi_tegra_data *tspi = spi_master_get_devdata(master);
 	unsigned limit = 50;
 	unsigned long flags;
@@ -1572,7 +1559,7 @@ static int spi_tegra_suspend(struct platform_device *pdev, pm_message_t state)
 
 	/* Wait for all transfer completes */
 	if (!list_empty(&tspi->queue))
-		dev_warn(&pdev->dev, "The transfer list is not empty "
+		dev_warn(dev, "The transfer list is not empty "
 			"Waiting for time %d ms to complete transfer\n",
 			limit * 20);
 
@@ -1586,7 +1573,7 @@ static int spi_tegra_suspend(struct platform_device *pdev, pm_message_t state)
 	tspi->is_suspended = true;
 	if (!list_empty(&tspi->queue)) {
 		limit = 50;
-		dev_err(&pdev->dev, "All transfer has not completed, "
+		dev_err(dev, "All transfer has not completed, "
 			"Waiting for %d ms current transfer to complete\n",
 			limit * 20);
 		while (tspi->is_transfer_in_progress && limit--) {
@@ -1597,7 +1584,7 @@ static int spi_tegra_suspend(struct platform_device *pdev, pm_message_t state)
 	}
 
 	if (tspi->is_transfer_in_progress) {
-		dev_err(&pdev->dev,
+		dev_err(dev,
 			"Spi transfer is in progress Avoiding suspend\n");
 		tspi->is_suspended = false;
 		spin_unlock_irqrestore(&tspi->lock, flags);
@@ -1613,9 +1600,9 @@ static int spi_tegra_suspend(struct platform_device *pdev, pm_message_t state)
 	return 0;
 }
 
-static int spi_tegra_resume(struct platform_device *pdev)
+static int spi_tegra_resume(struct device *dev)
 {
-	struct spi_master *master = dev_get_drvdata(&pdev->dev);
+	struct spi_master *master = dev_get_drvdata(dev);
 	struct spi_tegra_data *tspi = spi_master_get_devdata(master);
 	struct spi_message *m;
 	struct spi_device *spi;
@@ -1627,11 +1614,11 @@ static int spi_tegra_resume(struct platform_device *pdev)
 	if (tspi->is_clkon_always)
 		tegra_spi_clk_enable(tspi);
 
-	pm_runtime_get_sync(&pdev->dev);
+	pm_runtime_get_sync(dev);
 	tegra_spi_clk_enable(tspi);
 	spi_tegra_writel(tspi, tspi->command_reg, SLINK_COMMAND);
 	tegra_spi_clk_disable(tspi);
-	pm_runtime_put_sync(&pdev->dev);
+	pm_runtime_put_sync(dev);
 
 	spin_lock_irqsave(&tspi->lock, flags);
 
@@ -1678,14 +1665,18 @@ static int tegra_spi_runtime_resume(struct device *dev)
         clk_enable(tspi->clk);
         return 0;
 }
+#endif //CONFIG_PM_RUNTIME
 
-static const struct dev_pm_ops tegra_spi_dev_pm_ops = {
 #ifdef CONFIG_PM
+static const struct dev_pm_ops tegra_spi_dev_pm_ops = {
+	.suspend =      spi_tegra_suspend,
+	.resume =       spi_tegra_resume,
+#ifdef CONFIG_PM_RUNTIME
         .runtime_idle = tegra_spi_runtime_idle,
         .runtime_resume = tegra_spi_runtime_resume,
 #endif
 };
-#endif //CONFIG_PM_RUNTIME
+#endif
 
 MODULE_ALIAS("platform:spi_tegra");
 
@@ -1704,15 +1695,11 @@ static struct platform_driver spi_tegra_driver = {
 		.name =		"spi_tegra",
 		.owner =	THIS_MODULE,
 		.of_match_table = spi_tegra_of_match_table,
-#ifdef CONFIG_PM_RUNTIME
+#ifdef CONFIG_PM
 		.pm =		&tegra_spi_dev_pm_ops,
 #endif
 	},
 	.remove =	__devexit_p(spi_tegra_remove),
-#ifdef CONFIG_PM
-	.suspend =      spi_tegra_suspend,
-	.resume =       spi_tegra_resume,
-#endif
 };
 
 static int __init spi_tegra_init(void)
