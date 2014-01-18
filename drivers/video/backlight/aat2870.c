@@ -417,7 +417,8 @@ static int aat2870_bl_update_modestatus(struct backlight_device *bd)
 	if (is_suspended)
 		return 0;
 
-	schedule_delayed_work(&delayed_mc_work, 1*HZ);
+	schedule_delayed_work(&delayed_mc_work, msecs_to_jiffies(1500));
+
 	return 0;
 }
 
@@ -1151,7 +1152,6 @@ static int aat2870_bl_suspend(struct i2c_client *client, pm_message_t state)
 	aat2870_bl_disable(bd);
 
 	if (drvdata->op_mode == AAT2870_OP_MODE_ALC) {
-		aat2870_bl_switch_mode(AAT2870_OP_MODE_NORMAL);
 		drvdata->op_mode = AAT2870_OP_MODE_NORMAL;
 		als_enabled = true;
 	} else {
@@ -1166,10 +1166,8 @@ static int aat2870_bl_resume(struct i2c_client *client)
 	struct aat2870_bl_driver_data *drvdata = i2c_get_clientdata(client);
 	struct backlight_device *bd = drvdata->bd;
 
-	if (als_enabled) {
-		aat2870_bl_switch_mode(AAT2870_OP_MODE_ALC);
+	if (als_enabled)
 		drvdata->op_mode = AAT2870_OP_MODE_ALC;
-	}
 
 	/* Restore backlight */
 	backlight_update_status(bd);
