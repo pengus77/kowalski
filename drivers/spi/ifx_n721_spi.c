@@ -691,7 +691,7 @@ static int ifx_spi_resume(struct spi_device *spi)
 		IFX_SPI_PRINTK(" wake lock : 0x%lx", &ifx_gspi_data->wake_lock);
 		if(&ifx_gspi_data->wake_lock)
 		{
-			wake_lock_timeout(&ifx_gspi_data->wake_lock, msecs_to_jiffies(500));	// for power consumption
+			wake_lock_timeout(&ifx_gspi_data->wake_lock, msecs_to_jiffies(300));	// for power consumption
 		}
 
 		ifx_gspi_data->wake_lock_flag = 1;
@@ -1150,7 +1150,7 @@ static irqreturn_t ifx_spi_handle_srdy_irq(int irq, void *handle)
 
 #ifdef WAKE_LOCK_RESUME // HZ is 1sec
 	IFX_SPI_DEBUG("[IFX_SRDY] wake lock : 0x%lx", &ifx_gspi_data->wake_lock);
-	wake_lock_timeout(&ifx_gspi_data->wake_lock, msecs_to_jiffies(500));	//5,, Unexpected interrupt or power consumption
+	wake_lock_timeout(&ifx_gspi_data->wake_lock, msecs_to_jiffies(300));	//5,, Unexpected interrupt or power consumption
 #endif	
 	IFX_SPI_DEBUG("queue_work is done!");		
 	queue_work(spi_data->ifx_wq, &spi_data->ifx_work);	  
@@ -1163,7 +1163,6 @@ static irqreturn_t ifx_spi_handle_srdy_irq(int irq, void *handle)
 static void ifx_spi_handle_work(struct work_struct *work)
 {
 	bool spi_tegra_suspended;
-
 	struct ifx_spi_data *spi_data = container_of(work, struct ifx_spi_data, ifx_work);
 
 #ifdef IFX_SPI_SPEED_MEASUREMENT
@@ -1172,7 +1171,6 @@ static void ifx_spi_handle_work(struct work_struct *work)
 #endif
 
 	IFX_SPI_DEBUG( " start");		
-	unsigned long reg;
 	int pm_off_count;
 
 	if(1 == spi_data->is_suspended)
