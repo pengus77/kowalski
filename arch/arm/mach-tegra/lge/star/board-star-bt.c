@@ -44,25 +44,43 @@
 #include <mach-tegra/gpio-names.h>
 
 #ifdef CONFIG_BCM4329_RFKILL
-#include <linux/rfkill-gpio.h>
+#include <linux/lbee9qmb-rfkill.h>
 
 #define GPIO_BT_RESET		TEGRA_GPIO_PZ2
 #define GPIO_BT_WAKE		TEGRA_GPIO_PX4
 #define GPIO_BT_HOSTWAKE	TEGRA_GPIO_PC7
 
-static struct rfkill_gpio_platform_data star_bt_rfkill_pdata[] = {
-	{
-		.name		= "bt_rfkill",
-		.reset_gpio     = GPIO_BT_RESET,
-		.type		= RFKILL_TYPE_BLUETOOTH,
-	},
-};
+static int plat_bt_uart_enable(void)
+{
+	int err = 0;
+	printk(KERN_DEBUG "%s", __func__);
+	return err;
+}
 
-static struct platform_device star_bt_rfkill_device = {
-	.name = "rfkill_gpio",
-	.id   = -1,
-	.dev  = {
-		.platform_data  = star_bt_rfkill_pdata,
+static int plat_bt_uart_disable(void)
+{
+	int err = 0;
+	printk(KERN_DEBUG "%s", __func__);
+	return err;
+}
+
+static struct lbee9qmb_platform_data lbee9qmb_platform = {
+	.gpio_reset = GPIO_BT_RESET,
+#ifdef CONFIG_BRCM_BT_WAKE
+	.gpio_btwake = GPIO_BT_WAKE,
+#endif
+#ifdef CONFIG_BRCM_HOST_WAKE
+	.gpio_hostwake = GPIO_BT_HOSTWAKE,
+#endif
+	.active_low = 0, /* 0: active high, 1: active low */
+	.delay = 100,
+	.chip_enable = plat_bt_uart_enable,
+	.chip_disable = plat_bt_uart_disable,
+};
+static struct platform_device lbee9qmb_device = {
+	.name = "lbee9qmb-rfkill",
+	.dev = {
+		.platform_data = &lbee9qmb_platform,
 	},
 };
 
@@ -79,10 +97,10 @@ void star_bt_rfkill(void)
 	printk(KERN_DEBUG "%s : tegra_gpio_enable(hostwake) [%d]", __func__, GPIO_BT_HOSTWAKE);
 #endif
 
-	if (platform_device_register(&star_bt_rfkill_device))
-		printk(KERN_DEBUG "%s: bt_rfkill_device registration failed \n", __func__);
+	if (platform_device_register(&lbee9qmb_device))
+		printk(KERN_DEBUG "%s: lbee9qmb_device registration failed \n", __func__);
 	else
-		printk(KERN_DEBUG "%s: bt_rfkill_device registration OK \n", __func__);
+		printk(KERN_DEBUG "%s: lbee9qmb_device registration OK \n", __func__);
 
 	return;
 }
@@ -107,20 +125,20 @@ void __init star_setup_bluesleep(void)
 		goto err_free_dev;
 	}
 
-	res[0].name	= "gpio_host_wake";
-	res[0].start	= GPIO_BT_HOSTWAKE;
-	res[0].end	= GPIO_BT_HOSTWAKE;
-	res[0].flags	= IORESOURCE_IO;
+	res[0].name   = "gpio_host_wake";
+	res[0].start  = GPIO_BT_HOSTWAKE;
+	res[0].end    = GPIO_BT_HOSTWAKE;
+	res[0].flags  = IORESOURCE_IO;
 
-	res[1].name	= "gpio_ext_wake";
-	res[1].start	= GPIO_BT_WAKE;
-	res[1].end	= GPIO_BT_WAKE;
-	res[1].flags	= IORESOURCE_IO;
+	res[1].name   = "gpio_ext_wake";
+	res[1].start  = GPIO_BT_WAKE;
+	res[1].end    = GPIO_BT_WAKE;
+	res[1].flags  = IORESOURCE_IO;
 
-	res[2].name	= "host_wake";
-	res[2].start	= gpio_to_irq(GPIO_BT_HOSTWAKE);
-	res[2].end	= gpio_to_irq(GPIO_BT_HOSTWAKE);
-	res[2].flags	= IORESOURCE_IRQ | IORESOURCE_IRQ_HIGHEDGE ;
+	res[2].name   = "host_wake";
+	res[2].start  = gpio_to_irq(GPIO_BT_HOSTWAKE);
+	res[2].end    = gpio_to_irq(GPIO_BT_HOSTWAKE);
+	res[2].flags  = IORESOURCE_IRQ | IORESOURCE_IRQ_HIGHEDGE ;
 
 	if (platform_device_add_resources(pdev, res, 3)) {
 		pr_err("unable to add resources to bluesleep device\n");
@@ -134,8 +152,8 @@ void __init star_setup_bluesleep(void)
 
 	bluesleep_setup_uart_port(&tegra_uartc_device);
 
-	tegra_gpio_enable(GPIO_BT_HOSTWAKE);
 	tegra_gpio_enable(GPIO_BT_WAKE);
+	tegra_gpio_enable(GPIO_BT_HOSTWAKE);
 
 	return;
 
@@ -144,4 +162,3 @@ err_free_res:
 err_free_dev:
 	platform_device_put(pdev);
 	return;
-}
