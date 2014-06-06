@@ -27,7 +27,6 @@
 #include <linux/delay.h>
 #include <linux/init.h>
 #include <linux/sched.h>
-#include <linux/slab.h>
 
 #include <linux/atomic.h>
 #include <asm/cacheflush.h>
@@ -484,38 +483,25 @@ static int bad_syscall(int n, struct pt_regs *regs)
 static inline void
 do_cache_op(unsigned long start, unsigned long end, int flags)
 {
+	struct mm_struct *mm = current->active_mm;
+	struct vm_area_struct *vma;
+
 	if (end < start || flags)
 		return;
-	return flush_cache_user_range(start, end);
-}
 
-static inline int
-do_cache_op_iov(const struct iovec __user *uiov, unsigned long cnt, int flags)
-{
-	int i, ret = 0;
-	unsigned long len = cnt * sizeof(struct iovec);
-	struct iovec *iov = kmalloc(len, GFP_KERNEL);
+	down_read(&mm->mmap_sem);
+	vma = find_vma(mm, start);
+	if (vma && vma->vm_start < end) {
+		if (start < vma->vm_start)
+			start = vma->vm_start;
+		if (end > vma->vm_end)
+			end = vma->vm_end;
 
-	if (iov == NULL) {
-		ret = -ENOMEM;
-		goto out;
+		up_read(&mm->mmap_sem);
+		flush_cache_user_range(start, end);
+		return;
 	}
-
-	if (copy_from_user(iov, uiov, len)) {
-		ret = -EFAULT;
-		goto out_free;
-	}
-
-	for (i = 0; i < cnt; ++i) {
-		unsigned long start = (unsigned long __force)iov[i].iov_base;
-		unsigned long end = start + iov[i].iov_len;
-		do_cache_op(start, end, flags);
-	}
-
-out_free:
-	kfree(iov);
-out:
-	return ret;
+	up_read(&mm->mmap_sem);
 }
 
 /*
@@ -563,10 +549,6 @@ asmlinkage int arm_syscall(int no, struct pt_regs *regs)
 	case NR(cacheflush):
 		do_cache_op(regs->ARM_r0, regs->ARM_r1, regs->ARM_r2);
 		return 0;
-
-	case NR(cacheflush_iov):
-		do_cache_op_iov((const struct iovec __user *)regs->ARM_r0,
-					regs->ARM_r1, regs->ARM_r2);
 
 	case NR(usr26):
 		if (!(elf_hwcap & HWCAP_26BIT))
